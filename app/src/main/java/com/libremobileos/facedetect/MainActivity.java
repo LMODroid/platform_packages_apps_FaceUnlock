@@ -474,8 +474,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
   private void onFacesDetected(long currTimestamp, List<SimilarityClassifier.Recognition> faces, boolean add) {
 
-    cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
-    final Canvas canvas = new Canvas(cropCopyBitmap);
+
     final Paint paint = new Paint();
     paint.setColor(Color.RED);
     paint.setStyle(Style.STROKE);
@@ -545,8 +544,8 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
         //canvas.drawRect(faceBB, paint);
 
-        String label = "";
-        float confidence = -1f;
+        String label = face.getTitle();
+        float distance = -1f;
         Integer color = Color.BLUE;
         Object extra = null;
         Bitmap crop = null;
@@ -573,10 +572,10 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 //            LOGGER.i("embeeding retrieved " + extra.toString());
 //          }
 
-          float conf = result.getDistance();
-          if (conf < 1.0f) {
+          float dist = result.getDistance();
+          if (dist < 1.0f) {
 
-            confidence = conf;
+            distance = dist;
             label = result.getTitle();
             if (result.getId().equals("0")) {
               color = Color.GREEN;
@@ -605,7 +604,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
         }
 
         final SimilarityClassifier.Recognition result = new SimilarityClassifier.Recognition(
-                "0", label, confidence, boundingBox);
+                "0", label, distance, boundingBox);
 
         result.setColor(color);
         result.setLocation(boundingBox);
