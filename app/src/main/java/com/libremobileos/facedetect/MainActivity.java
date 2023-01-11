@@ -89,9 +89,9 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   private static final String TF_FD_API_MODEL_FILE = "detect-class1.tflite";
   private static final String TF_FD_API_LABELS_FILE = "file:///android_asset/face_labels_list.txt";
 
-  private static final DetectorMode MODE = DetectorMode.TF_OD_API;
   // Minimum detection confidence to track a detection.
   private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.5f;
+  private static final float MAXIMUM_DISTANCE_TF_FD_API = 0.8f;
   private static final boolean MAINTAIN_ASPECT = false;
 
   private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 480);
@@ -314,19 +314,12 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
             paint.setStyle(Style.STROKE);
             paint.setStrokeWidth(2.0f);
 
-            float minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
-            switch (MODE) {
-              case TF_OD_API:
-                minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
-                break;
-            }
-
             final List<SimilarityClassifier.Recognition> mappedRecognitions =
                     new LinkedList<SimilarityClassifier.Recognition>();
 
             for (final SimilarityClassifier.Recognition result : results) {
               final RectF location = result.getLocation();
-              if (location != null && result.getDistance() >= minimumConfidence) {
+              if (location != null && result.getDistance() >= MINIMUM_CONFIDENCE_TF_OD_API) {
                 //LOGGER.i("wjy debug fuck**" +result.getTitle());    //wjy
 
                 canvas.drawRect(location, paint);
@@ -358,20 +351,20 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     return DESIRED_PREVIEW_SIZE;
   }
 
-  // Which detection model to use: by default uses Tensorflow Object Detection API frozen
-  // checkpoints.
-  private enum DetectorMode {
-    TF_OD_API;
-  }
-
   @Override
   protected void setUseNNAPI(final boolean isChecked) {
-    runInBackground(() -> detector.setUseNNAPI(isChecked));
+    runInBackground(() -> {
+      detector.setUseNNAPI(isChecked);
+      faceDetector.setUseNNAPI(isChecked);
+    });
   }
 
   @Override
   protected void setNumThreads(final int numThreads) {
-    runInBackground(() -> detector.setNumThreads(numThreads));
+    runInBackground(() -> {
+      detector.setNumThreads(numThreads);
+      faceDetector.setNumThreads(numThreads);
+    });
   }
 
 
@@ -481,11 +474,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     paint.setStrokeWidth(2.0f);
 
     float minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
-    switch (MODE) {
-      case TF_OD_API:
-        minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
-        break;
-    }
 
     final List<SimilarityClassifier.Recognition> mappedRecognitions =
             new LinkedList<SimilarityClassifier.Recognition>();
@@ -521,8 +509,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
       final RectF boundingBox = new RectF(face.getLocation());
 
-      //final boolean goodConfidence = result.getConfidence() >= minimumConfidence;
-      final boolean goodConfidence = true; //face.get;
+      final boolean goodConfidence = face.getDistance() >= MINIMUM_CONFIDENCE_TF_OD_API;
       if (boundingBox != null && goodConfidence) {
 
         // maps crop coordinates to original
@@ -573,7 +560,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 //          }
 
           float dist = result.getDistance();
-          if (dist < 1.0f) {
+          if (dist < MAXIMUM_DISTANCE_TF_FD_API) {
 
             distance = dist;
             label = result.getTitle();
