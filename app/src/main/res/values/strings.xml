@@ -1,0 +1,10 @@
+<resources>
+	<string name="app_name">FaceDetect</string>
+	<string name="description_info">Info</string>
+	<string name="request_permission">This sample needs camera permission.</string>
+	<string name="tfe_od_app_name" translation_description="Object Detection demo app [CHAR_LIMIT=40]">Face Recognition</string>
+	<string name="tfe_od_camera_error" translation_description="Error regarding camera support[CHAR_LIMIT=40]">This device doesn\'t support Camera2 API.</string>
+	<string name="activity_name_classification">TFL Classify</string>
+	<string name="activity_name_detection">Face Detect</string>
+	<string name="activity_name_speech">TFL Speech</string>
+</resources>

@@ -1,0 +1,37 @@
+plugins {
+	id 'com.android.application'
+}
+
+android {
+	namespace 'com.libremobileos.facedetect'
+	compileSdk 33
+
+	defaultConfig {
+		applicationId "com.libremobileos.facedetect"
+		minSdk 28
+		//noinspection ExpiredTargetSdkVersion
+		targetSdk 28
+		versionCode 1
+		versionName "1.0"
+	}
+
+	buildTypes {
+		release {
+			minifyEnabled false
+			proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+		}
+	}
+	compileOptions {
+		sourceCompatibility JavaVersion.VERSION_11
+		targetCompatibility JavaVersion.VERSION_11
+	}
+}
+
+dependencies {
+	implementation('androidx.annotation:annotation:1.5.0')
+	implementation('org.tensorflow:tensorflow-lite:2.11.0')
+
+	//TODO: drop these
+	implementation('com.google.android.material:material:1.7.0')
+	implementation('androidx.appcompat:appcompat:1.5.1')
+}
