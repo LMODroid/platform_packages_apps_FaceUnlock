@@ -52,15 +52,15 @@ public class TFLiteObjectDetectionAPIModel
 
   private static final Logger LOGGER = new Logger();
 
-  //private static final int OUTPUT_SIZE = 512;
-  private static final int OUTPUT_SIZE = 192;
+  private static final int OUTPUT_SIZE = 512;
+  //private static final int OUTPUT_SIZE = 192;
 
   // Only return this many results.
   private static final int NUM_DETECTIONS = 10;
 
   // Float model
-  private static final float IMAGE_MEAN = 128.0f;
-  private static final float IMAGE_STD = 128.0f;
+  private static final float IMAGE_MEAN = 127.5f;
+  private static final float IMAGE_STD = 127.5f;
 
   // Number of threads in the java app
   private static final int NUM_THREADS = 4;
@@ -176,7 +176,7 @@ public class TFLiteObjectDetectionAPIModel
     Pair<String, Float> ret = null;
     for (Map.Entry<String, Recognition> entry : registered.entrySet()) {
         final String name = entry.getKey();
-        final float[] knownEmb = ((float[][]) entry.getValue().getExtra())[0];
+        final float[] knownEmb = normalizeFloat(((float[][]) entry.getValue().getExtra())[0]);
 
         float distance = 0;
         for (int i = 0; i < emb.length; i++) {
@@ -193,6 +193,23 @@ public class TFLiteObjectDetectionAPIModel
 
   }
 
+  public static float sumSquares(float[] data) {
+    float ans = 0.0f;
+    for (int k = 0; k < data.length; k++) {
+      ans += data[k] * data[k];
+    }
+    return (ans);
+  }
+  
+  public static float[] normalizeFloat(float[] emb) {
+    float [] norm_out = new float[512];
+    double norm  = Math.sqrt(sumSquares(emb));
+    for (int i=0;i< emb.length;i++){
+      norm_out[i] = (float)(emb[i]/norm);
+    }
+
+    return norm_out;
+  }
 
   @Override
   public List<Recognition> recognizeImage(final Bitmap bitmap, boolean storeExtra) {
@@ -205,8 +222,8 @@ public class TFLiteObjectDetectionAPIModel
     bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
 
     imgData.rewind();
-    for (int i = 0; i < inputSize; ++i) {
-      for (int j = 0; j < inputSize; ++j) {
+    for (int i = 0; i < inputSize; i++) {
+      for (int j = 0; j < inputSize; j++) {
         int pixelValue = intValues[i * inputSize + j];
         if (isModelQuantized) {
           // Quantized model
@@ -269,7 +286,7 @@ public class TFLiteObjectDetectionAPIModel
 
       if (registered.size() > 0) {
         //LOGGER.i("dataset SIZE: " + registered.size());
-        final Pair<String, Float> nearest = findNearest(embeedings[0]);
+          final Pair<String, Float> nearest = findNearest(normalizeFloat(embeedings[0]));
         if (nearest != null) {
 
           final String name = nearest.first;
