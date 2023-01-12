@@ -57,6 +57,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.nio.ByteBuffer;
 
 import com.libremobileos.facedetect.R;
+import com.libremobileos.yifan.face.shared.ImageUtils;
 
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,

@@ -35,10 +35,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.libremobileos.facedetect.R;
-import com.libremobileos.facedetect.util.AutoFitTextureView;
-import com.libremobileos.facedetect.util.CameraConnectionFragment;
-import com.libremobileos.facedetect.util.ImageUtils;
-import com.libremobileos.facedetect.util.Logger;
+import com.libremobileos.yifan.face.shared.ImageUtils;
 
 @SuppressLint("ValidFragment")
 public class LegacyCameraConnectionFragment extends Fragment {

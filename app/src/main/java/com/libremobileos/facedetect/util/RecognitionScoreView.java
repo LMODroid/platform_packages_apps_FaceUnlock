@@ -22,7 +22,7 @@ import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
 import java.util.List;
-import com.libremobileos.facedetect.util.SimilarityClassifier.Recognition;
+import com.libremobileos.yifan.face.shared.SimilarityClassifier.Recognition;
 
 public class RecognitionScoreView extends View implements ResultsView {
   private static final float TEXT_SIZE_DIP = 14;

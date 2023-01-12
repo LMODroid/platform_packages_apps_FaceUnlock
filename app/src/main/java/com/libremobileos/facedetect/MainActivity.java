@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+ * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,8 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
-import android.graphics.Paint;
-import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.hardware.camera2.CameraCharacteristics;
@@ -38,29 +35,21 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-//import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-/*import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.face.Face;
-import com.google.mlkit.vision.face.FaceDetection;
-import com.google.mlkit.vision.face.FaceDetector;
-import com.google.mlkit.vision.face.FaceDetectorOptions;*/
+import com.libremobileos.facedetect.util.BorderedText;
+import com.libremobileos.facedetect.util.CameraActivity;
+import com.libremobileos.facedetect.util.Logger;
+import com.libremobileos.facedetect.util.MultiBoxTracker;
+import com.libremobileos.facedetect.util.OverlayView;
+import com.libremobileos.yifan.face.scan.FaceScanner;
+import com.libremobileos.yifan.face.shared.FaceDetector;
+import com.libremobileos.yifan.face.shared.SimilarityClassifier;
 
-import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-
-import com.libremobileos.facedetect.util.CameraActivity;
-import com.libremobileos.facedetect.util.OverlayView;
-import com.libremobileos.facedetect.util.OverlayView.DrawCallback;
-import com.libremobileos.facedetect.util.BorderedText;
-import com.libremobileos.facedetect.util.ImageUtils;
-import com.libremobileos.facedetect.util.Logger;
-import com.libremobileos.facedetect.util.SimilarityClassifier;
-import com.libremobileos.facedetect.util.MultiBoxTracker;
-import com.libremobileos.facedetect.util.TFLiteObjectDetectionAPIModel;
+import java.util.Map;
 
 /**
  * An activity that uses a TensorFlowMultiBoxDetector and ObjectTracker to detect and then track
@@ -69,90 +58,37 @@ import com.libremobileos.facedetect.util.TFLiteObjectDetectionAPIModel;
 public class MainActivity extends CameraActivity implements OnImageAvailableListener {
   private static final Logger LOGGER = new Logger();
 
-
-  // FaceNet
-//  private static final int TF_OD_API_INPUT_SIZE = 160;
-//  private static final boolean TF_OD_API_IS_QUANTIZED = false;
-//  private static final String TF_OD_API_MODEL_FILE = "facenet.tflite";
-//  //private static final String TF_OD_API_MODEL_FILE = "facenet_hiroki.tflite";
-
-  // MobileFaceNet
-  private static final int TF_OD_API_INPUT_SIZE = 112;
-  private static final boolean TF_OD_API_IS_QUANTIZED = false;
-  private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
-
-  private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/labelmap.txt";
-
-  // Face Detect
-  private static final int TF_FD_API_INPUT_SIZE = 300;
-  private static final boolean TF_FD_API_IS_QUANTIZED = true;
-  private static final String TF_FD_API_MODEL_FILE = "detect-class1.tflite";
-  private static final String TF_FD_API_LABELS_FILE = "file:///android_asset/face_labels_list.txt";
-
-  // Minimum detection confidence to track a detection.
-  private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.5f;
-  private static final float MAXIMUM_DISTANCE_TF_FD_API = 0.8f;
-  private static final boolean MAINTAIN_ASPECT = false;
-
   private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 480);
-  //private static final int CROP_SIZE = 320;
-  //private static final Size CROP_SIZE = new Size(320, 320);
 
-
-  private static final boolean SAVE_PREVIEW_BITMAP = false;
   private static final float TEXT_SIZE_DIP = 10;
   OverlayView trackingOverlay;
   private Integer sensorOrientation;
 
-  private SimilarityClassifier detector;
+  private FaceScanner detector;
+  private FaceScanner.InputImageProcessor inputImageProcessor;
 
   private long lastProcessingTimeMs;
   private Bitmap rgbFrameBitmap = null;
-  private Bitmap croppedBitmap = null;
-  private Bitmap cropCopyBitmap = null;
 
   private boolean computingDetection = false;
   private boolean addPending = false;
-  //private boolean adding = false;
 
   private long timestamp = 0;
 
-  private Matrix frameToCropTransform;
-  private Matrix cropToFrameTransform;
-  //private Matrix cropToPortraitTransform;
-
   private MultiBoxTracker tracker;
 
-  private BorderedText borderedText;
-
   // Face detector
-  private SimilarityClassifier faceDetector;
+  private FaceDetector faceDetector;
+  private FaceDetector.InputImageProcessor detectorInputImageProcessor;
 
-  // here the preview image is drawn in portrait way
-  private Bitmap portraitBmp = null;
-  // here the face is cropped and drawn
-  private Bitmap faceBmp = null;
-
-  private FloatingActionButton fabAdd;
-
-  //private HashMap<String, Classifier.Recognition> knownFaces = new HashMap<>();
-
+  private HashMap<String, float[][]> knownFaces = new HashMap<>();
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
-    fabAdd = findViewById(R.id.fab_add);
-    fabAdd.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        onAddClick();
-      }
-    });
-
-
-    //checkWritePermission();
-
+    FloatingActionButton fabAdd = findViewById(R.id.fab_add);
+    fabAdd.setOnClickListener(view -> onAddClick());
   }
 
 
@@ -160,7 +96,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   private void onAddClick() {
 
     addPending = true;
-    Toast.makeText(this, "please scan face now", Toast.LENGTH_LONG ).show();
+    //Toast.makeText(this, "please scan face now", Toast.LENGTH_LONG ).show();
 
   }
 
@@ -169,40 +105,17 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     final float textSizePx =
             TypedValue.applyDimension(
                     TypedValue.COMPLEX_UNIT_DIP, TEXT_SIZE_DIP, getResources().getDisplayMetrics());
-    borderedText = new BorderedText(textSizePx);
+    BorderedText borderedText = new BorderedText(textSizePx);
     borderedText.setTypeface(Typeface.MONOSPACE);
 
     tracker = new MultiBoxTracker(this);
 
 
-    try {
-      detector /* face auth */  =
-              TFLiteObjectDetectionAPIModel.create(
-                      getAssets(),
-                      TF_OD_API_MODEL_FILE,
-                      TF_OD_API_LABELS_FILE,
-                      TF_OD_API_INPUT_SIZE,
-                      TF_OD_API_IS_QUANTIZED,
-                      true);
+    detector /* face auth */  =
+            FaceScanner.create(this);
 
-      faceDetector /* find face */ =
-              TFLiteObjectDetectionAPIModel.create(
-                      getAssets(),
-                      TF_FD_API_MODEL_FILE,
-                      TF_FD_API_LABELS_FILE,
-                      TF_FD_API_INPUT_SIZE,
-                      TF_FD_API_IS_QUANTIZED,
-                      false);
-      //cropSize = TF_OD_API_INPUT_SIZE;
-    } catch (final IOException e) {
-      e.printStackTrace();
-      LOGGER.e(e, "Exception initializing classifier!");
-      Toast toast =
-              Toast.makeText(
-                      getApplicationContext(), "Classifier could not be initialized", Toast.LENGTH_SHORT);
-      toast.show();
-      finish();
-    }
+    faceDetector /* find face */ =
+            FaceDetector.create(this);
 
     previewWidth = size.getWidth();
     previewHeight = size.getHeight();
@@ -213,60 +126,17 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     LOGGER.i("Initializing at size %dx%d", previewWidth, previewHeight);
     rgbFrameBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Config.ARGB_8888);
 
-
-    int targetW, targetH;
-    if (sensorOrientation == 90 || sensorOrientation == 270) {
-      targetH = previewWidth;
-      targetW = previewHeight;
-    }
-    else {
-      targetW = previewWidth;
-      targetH = previewHeight;
-    }
-    int cropW = TF_FD_API_INPUT_SIZE;//(int) (targetW / 2.0);
-    int cropH = TF_FD_API_INPUT_SIZE;//(int) (targetH / 2.0);
-
-    croppedBitmap = Bitmap.createBitmap(cropW, cropH, Config.ARGB_8888);
-
-    portraitBmp = Bitmap.createBitmap(targetW, targetH, Config.ARGB_8888);
-    faceBmp = Bitmap.createBitmap(TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE, Config.ARGB_8888);
-
-    frameToCropTransform =
-            ImageUtils.getTransformationMatrix(
-                    previewWidth, previewHeight,
-                    cropW, cropH,
-                    sensorOrientation, MAINTAIN_ASPECT);
-
-//    frameToCropTransform =
-//            ImageUtils.getTransformationMatrix(
-//                    previewWidth, previewHeight,
-//                    previewWidth, previewHeight,
-//                    sensorOrientation, MAINTAIN_ASPECT);
-
-    cropToFrameTransform = new Matrix();
-    frameToCropTransform.invert(cropToFrameTransform);
-
-
-    Matrix frameToPortraitTransform =
-            ImageUtils.getTransformationMatrix(
-                    previewWidth, previewHeight,
-                    targetW, targetH,
-                    sensorOrientation, MAINTAIN_ASPECT);
-
-
-
     trackingOverlay = (OverlayView) findViewById(R.id.tracking_overlay);
     trackingOverlay.addCallback(
-            new DrawCallback() {
-              @Override
-              public void drawCallback(final Canvas canvas) {
-                tracker.draw(canvas);
-                if (isDebug()) {
-                  tracker.drawDebug(canvas);
-                }
+            canvas -> {
+              tracker.draw(canvas);
+              if (isDebug()) {
+                tracker.drawDebug(canvas);
               }
             });
 
+    detectorInputImageProcessor = new FaceDetector.InputImageProcessor(previewWidth, previewHeight, sensorOrientation);
+    inputImageProcessor = new FaceScanner.InputImageProcessor(sensorOrientation);
     tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
   }
 
@@ -290,55 +160,19 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     readyForNextImage();
 
-    final Canvas canvas = new Canvas(croppedBitmap);
-    canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
-    // For examining the actual TF input.
-    if (SAVE_PREVIEW_BITMAP) {
-      ImageUtils.saveBitmap(croppedBitmap);
-    }
+    FaceDetector.InputImage croppedBitmap = detectorInputImageProcessor.process(rgbFrameBitmap);
 
-
+    // 匿名类
     runInBackground(
-        new Runnable() {     // 匿名类
-          @Override
-          public void run() {
-            LOGGER.i("Running detection on image " + currTimestamp);
-            final long startTime = SystemClock.uptimeMillis();
-            final List<SimilarityClassifier.Recognition> results = faceDetector.recognizeImage(croppedBitmap, false);
-            lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
+            () -> {
+              LOGGER.i("Running detection on image " + currTimestamp);
+              final long startTime = SystemClock.uptimeMillis();
+              final List<FaceDetector.Face> results = faceDetector.detectFaces(croppedBitmap);
+              lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 
-            cropCopyBitmap = Bitmap.createBitmap(croppedBitmap);
-            final Canvas canvas = new Canvas(cropCopyBitmap);
-            final Paint paint = new Paint();
-            paint.setColor(Color.RED);
-            paint.setStyle(Style.STROKE);
-            paint.setStrokeWidth(2.0f);
-
-            final List<SimilarityClassifier.Recognition> mappedRecognitions =
-                    new LinkedList<SimilarityClassifier.Recognition>();
-
-            for (final SimilarityClassifier.Recognition result : results) {
-              final RectF location = result.getLocation();
-              if (location != null && result.getDistance() >= MINIMUM_CONFIDENCE_TF_OD_API) {
-                //LOGGER.i("wjy debug fuck**" +result.getTitle());    //wjy
-
-                canvas.drawRect(location, paint);
-
-                cropToFrameTransform.mapRect(location);
-
-                result.setLocation(location);
-                mappedRecognitions.add(result);
-              }
-            }
-
-
-            onFacesDetected(currTimestamp, mappedRecognitions, addPending);
-            addPending = false;
-
-            //requestRender();
-
-          }
-        });
+              onFacesDetected(currTimestamp, results, addPending);
+              addPending = false;
+            });
   }
 
   @Override
@@ -367,44 +201,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     });
   }
 
-
-  // Face Processing
-  private Matrix createTransform(
-          final int srcWidth,
-          final int srcHeight,
-          final int dstWidth,
-          final int dstHeight,
-          final int applyRotation) {
-
-    Matrix matrix = new Matrix();
-    if (applyRotation != 0) {
-      if (applyRotation % 90 != 0) {
-        LOGGER.w("Rotation of %d % 90 != 0", applyRotation);
-      }
-
-      // Translate so center of image is at origin.
-      matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
-
-      // Rotate around origin.
-      matrix.postRotate(applyRotation);
-    }
-
-//        // Account for the already applied rotation, if any, and then determine how
-//        // much scaling is needed for each axis.
-//        final boolean transpose = (Math.abs(applyRotation) + 90) % 180 == 0;
-//        final int inWidth = transpose ? srcHeight : srcWidth;
-//        final int inHeight = transpose ? srcWidth : srcHeight;
-
-    if (applyRotation != 0) {
-
-      // Translate back from origin centered reference to destination frame.
-      matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
-    }
-
-    return matrix;
-
-  }
-
   private void showAddFaceDialog(SimilarityClassifier.Recognition rec) {
 
     AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -426,8 +222,8 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
           if (name.isEmpty()) {
               return;
           }
-          detector.register(name, rec);
-          //knownFaces.put(name, rec);
+          //detector.register(name, rec);
+          knownFaces.put(name, rec.getExtra());
           dlg.dismiss();
       }
     });
@@ -441,7 +237,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     tracker.trackResults(mappedRecognitions, currTimestamp);
     trackingOverlay.postInvalidate();
     computingDetection = false;
-    //adding = false;
 
 
     if (mappedRecognitions.size() > 0) {
@@ -458,148 +253,84 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
               @Override
               public void run() {
                 showFrameInfo(previewWidth + "x" + previewHeight);
-                showCropInfo(croppedBitmap.getWidth() + "x" + croppedBitmap.getHeight());
                 showInference(lastProcessingTimeMs + "ms");
               }
             });
 
   }
 
-  private void onFacesDetected(long currTimestamp, List<SimilarityClassifier.Recognition> faces, boolean add) {
-
-
-    final Paint paint = new Paint();
-    paint.setColor(Color.RED);
-    paint.setStyle(Style.STROKE);
-    paint.setStrokeWidth(2.0f);
-
-    float minimumConfidence = MINIMUM_CONFIDENCE_TF_OD_API;
-
+  private void onFacesDetected(long currTimestamp, List<FaceDetector.Face> faces, boolean add) {
+    // TODO move this to yifan.face package to make this recycle-able code
     final List<SimilarityClassifier.Recognition> mappedRecognitions =
-            new LinkedList<SimilarityClassifier.Recognition>();
+            new LinkedList<>();
 
+    Bitmap portraitImage = inputImageProcessor.transformRawImageToPortrait(rgbFrameBitmap);
 
-    //final List<Classifier.Recognition> results = new ArrayList<>();
-
-    // Note this can be done only once
-    int sourceW = rgbFrameBitmap.getWidth();
-    int sourceH = rgbFrameBitmap.getHeight();
-    int targetW = portraitBmp.getWidth();
-    int targetH = portraitBmp.getHeight();
-    Matrix transform = createTransform(
-            sourceW,
-            sourceH,
-            targetW,
-            targetH,
-            sensorOrientation);
-    final Canvas cv = new Canvas(portraitBmp);
-
-    // draws the original image in portrait mode.
-    cv.drawBitmap(rgbFrameBitmap, transform, null);
-
-    final Canvas cvFace = new Canvas(faceBmp);
-
-    boolean saved = false;
-
-    for (SimilarityClassifier.Recognition face : faces) {
+    for (FaceDetector.Face face : faces) {
 
       LOGGER.i("FACE" + face.toString());
       LOGGER.i("Running detection on face " + currTimestamp);
-      //results = detector.recognizeImage(croppedBitmap);
+      FaceScanner.InputImage faceBmp = inputImageProcessor.process(rgbFrameBitmap, portraitImage, face.getLocation());
+      if (faceBmp == null) continue;
 
       final RectF boundingBox = new RectF(face.getLocation());
 
-      final boolean goodConfidence = face.getDistance() >= MINIMUM_CONFIDENCE_TF_OD_API;
-      if (boundingBox != null && goodConfidence) {
+      String label = face.getTitle();
+      float distance = -1f;
+      int color = Color.BLUE;
+      float[][] extra = null;
+      Bitmap crop = null;
 
-        // maps crop coordinates to original
-        //cropToFrameTransform.mapRect(boundingBox);
+      final long startTime = SystemClock.uptimeMillis();
+      final FaceScanner.Face scanned = detector.detectFace(faceBmp, add);
+      lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 
-        // maps original coordinates to portrait coordinates
-        RectF faceBB = new RectF(boundingBox);
-        transform.mapRect(faceBB);
-
-        // translates portrait to origin and scales to fit input inference size
-        //cv.drawRect(faceBB, paint);
-        float sx = ((float) TF_OD_API_INPUT_SIZE) / faceBB.width();
-        float sy = ((float) TF_OD_API_INPUT_SIZE) / faceBB.height();
-        Matrix matrix = new Matrix();
-        matrix.postTranslate(-faceBB.left, -faceBB.top);
-        matrix.postScale(sx, sy);
-
-        cvFace.drawBitmap(portraitBmp, matrix, null);
-
-        //canvas.drawRect(faceBB, paint);
-
-        String label = face.getTitle();
-        float distance = -1f;
-        Integer color = Color.BLUE;
-        Object extra = null;
-        Bitmap crop = null;
-
-        if (add) {
-          crop = Bitmap.createBitmap(portraitBmp,
-                            (int) faceBB.left,
-                            (int) faceBB.top,
-                            (int) faceBB.width(),
-                            (int) faceBB.height());
+      FaceScanner.Face detected = null;
+      for (Map.Entry<String, float[][]> possible : knownFaces.entrySet()) {
+        float newdistance = scanned.compare(possible.getValue());
+        if (newdistance <= FaceScanner.MAXIMUM_DISTANCE_TF_OD_API && (detected == null || newdistance < detected.getDistance())) {
+          detected = new FaceScanner.Face(scanned.getId(), possible.getKey(), newdistance, face.getLocation(), scanned.getCrop(), possible.getValue());
         }
+      }
 
-        final long startTime = SystemClock.uptimeMillis();
-        final List<SimilarityClassifier.Recognition> resultsAux = detector.recognizeImage(faceBmp, add);
-        lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
-
-        if (resultsAux.size() > 0) {
-
-          SimilarityClassifier.Recognition result = resultsAux.get(0);
-
-          extra = result.getExtra();
-//          Object extra = result.getExtra();
-//          if (extra != null) {
-//            LOGGER.i("embeeding retrieved " + extra.toString());
-//          }
-
-          float dist = result.getDistance();
-          if (dist < MAXIMUM_DISTANCE_TF_FD_API) {
-
-            distance = dist;
-            label = result.getTitle();
-            if (result.getId().equals("0")) {
-              color = Color.GREEN;
-            }
-            else {
-              color = Color.RED;
-            }
-          }
-
+      if (detected != null) {
+        extra = detected.getExtra();
+        distance = detected.getDistance();
+        label = detected.getTitle();
+        crop = detected.getCrop();
+        if (detected.getId().equals("0")) {
+          color = Color.GREEN;
+        } else {
+          color = Color.RED;
         }
+      } else if (add) {
+        extra = scanned.getExtra();
+        crop = scanned.getCrop();
+      }
 
-        if (getCameraFacing() == CameraCharacteristics.LENS_FACING_FRONT) {
-
-          // camera is frontal so the image is flipped horizontally
-          // flips horizontally
-          Matrix flip = new Matrix();
-          if (sensorOrientation == 90 || sensorOrientation == 270) {
-            flip.postScale(1, -1, previewWidth / 2.0f, previewHeight / 2.0f);
-          }
-          else {
-            flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
-          }
-          //flip.postScale(1, -1, targetW / 2.0f, targetH / 2.0f);
-          flip.mapRect(boundingBox);
-
+      if (getCameraFacing() == CameraCharacteristics.LENS_FACING_FRONT) {
+        // camera is frontal so the image is flipped horizontally
+        // flips horizontally
+        Matrix flip = new Matrix();
+        if (sensorOrientation == 90 || sensorOrientation == 270) {
+          flip.postScale(1, -1, previewWidth / 2.0f, previewHeight / 2.0f);
+        } else {
+          flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
         }
-
-        final SimilarityClassifier.Recognition result = new SimilarityClassifier.Recognition(
-                "0", label, distance, boundingBox);
-
-        result.setColor(color);
-        result.setLocation(boundingBox);
-        result.setExtra(extra);
-        result.setCrop(crop);
-        mappedRecognitions.add(result);
+        //flip.postScale(1, -1, targetW / 2.0f, targetH / 2.0f);
+        flip.mapRect(boundingBox);
 
       }
+
+      final SimilarityClassifier.Recognition result = new SimilarityClassifier.Recognition(
+              "0", label, distance, boundingBox);
+
+      result.setColor(color);
+      result.setLocation(boundingBox);
+      result.setExtra(add ? extra : null); //ui logic excepts extra==null for now
+      result.setCrop(add ? crop : null);
+      mappedRecognitions.add(result);
+
 
     }
 

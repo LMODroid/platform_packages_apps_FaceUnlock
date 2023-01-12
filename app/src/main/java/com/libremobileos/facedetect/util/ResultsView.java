@@ -16,8 +16,8 @@ limitations under the License.
 package com.libremobileos.facedetect.util;
 
 import java.util.List;
-import com.libremobileos.facedetect.util.SimilarityClassifier.Recognition;
+import com.libremobileos.yifan.face.shared.SimilarityClassifier;
 
 public interface ResultsView {
-  public void setResults(final List<Recognition> results);
+  public void setResults(final List<SimilarityClassifier.Recognition> results);
 }
