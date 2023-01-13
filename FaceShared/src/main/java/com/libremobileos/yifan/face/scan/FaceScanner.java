@@ -20,6 +20,8 @@ import java.util.Locale;
 public class FaceScanner {
 	private final AssetManager am;
 	private SimilarityClassifier classifier;
+	private final boolean hwAccleration, enhancedHwAccleration;
+	private final int numThreads;
 	// MobileFaceNet
 	private static final int TF_OD_API_INPUT_SIZE = 112;
 	private static final boolean TF_OD_API_IS_QUANTIZED = false;
@@ -237,12 +239,19 @@ public class FaceScanner {
 		}
 	}
 
-	public static FaceScanner create(Context context) {
-		return new FaceScanner(context.getAssets());
+	public static FaceScanner create(Context context, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+		return new FaceScanner(context.getAssets(), hwAccleration, enhancedHwAccleration, numThreads);
 	}
 
-	public FaceScanner(AssetManager am) {
+	public static FaceScanner create(Context context) {
+		return create(context, false, true, 4);
+	}
+
+	public FaceScanner(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
 		this.am = am;
+		this.hwAccleration = hwAccleration;
+		this.enhancedHwAccleration = enhancedHwAccleration;
+		this.numThreads = numThreads;
 	}
 
 	private SimilarityClassifier getClassifier() throws IOException {
@@ -251,26 +260,13 @@ public class FaceScanner {
 					TF_OD_API_MODEL_FILE,
 					TF_OD_API_LABELS_FILE,
 					TF_OD_API_INPUT_SIZE,
-					TF_OD_API_IS_QUANTIZED
+					TF_OD_API_IS_QUANTIZED,
+					hwAccleration,
+					enhancedHwAccleration,
+					numThreads
 			);
 		}
 		return classifier;
-	}
-
-	public void setUseNNAPI(boolean useNNAPI) {
-		try {
-			getClassifier().setUseNNAPI(useNNAPI);
-		} catch (IOException ignored) {
-			// if it doesn't initialize, crash at a later point.
-		}
-	}
-
-	public void setNumThreads(int numThreads) {
-		try {
-			getClassifier().setNumThreads(numThreads);
-		} catch (IOException ignored) {
-			// if it doesn't initialize, crash at a later point.
-		}
 	}
 
 	public Face detectFace(InputImage input) {

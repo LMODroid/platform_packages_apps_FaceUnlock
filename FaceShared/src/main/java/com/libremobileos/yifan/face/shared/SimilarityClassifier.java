@@ -33,15 +33,14 @@ public abstract class SimilarityClassifier {
           final String modelFilename,
           final String labelFilename,
           final int inputSize,
-          final boolean isQuantized) throws IOException {
-    return TFLiteObjectDetectionAPIModel.create(assetManager, modelFilename, labelFilename, inputSize, isQuantized);
+          final boolean isQuantized,
+          final boolean hwAccleration,
+          final boolean useEnhancedAccleration, // if hwAccleration==true, setting this uses NNAPI instead of GPU. if false, it toggles XNNPACK
+          final int numThreads) throws IOException {
+    return TFLiteObjectDetectionAPIModel.create(assetManager, modelFilename, labelFilename, inputSize, isQuantized, hwAccleration, useEnhancedAccleration, numThreads);
   }
 
   public abstract List<Recognition> recognizeImage(Bitmap bitmap);
-
-  public abstract void setNumThreads(int num_threads);
-
-  public abstract void setUseNNAPI(boolean isChecked);
 
   /** An immutable result returned by a Classifier describing what was recognized. */
   public static class Recognition {

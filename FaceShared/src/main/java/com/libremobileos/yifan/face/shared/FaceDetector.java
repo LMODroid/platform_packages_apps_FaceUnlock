@@ -10,6 +10,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.libremobileos.yifan.face.scan.FaceScanner;
+
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +20,8 @@ import java.util.Locale;
 public class FaceDetector {
 	private final AssetManager am;
 	private SimilarityClassifier classifier;
+	private final boolean hwAccleration, enhancedHwAccleration;
+	private final int numThreads;
 	// Face Detect
 	private static final int TF_FD_API_INPUT_SIZE = 300;
 	private static final boolean TF_FD_API_IS_QUANTIZED = true;
@@ -134,12 +138,19 @@ public class FaceDetector {
 
 	}
 
-	public static FaceDetector create(Context context) {
-		return new FaceDetector(context.getAssets());
+	public static FaceDetector create(Context context, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+		return new FaceDetector(context.getAssets(), hwAccleration, enhancedHwAccleration, numThreads);
 	}
 
-	public FaceDetector(AssetManager am) {
+	public static FaceDetector create(Context context) {
+		return create(context, false, true, 4);
+	}
+
+	public FaceDetector(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
 		this.am = am;
+		this.hwAccleration = hwAccleration;
+		this.enhancedHwAccleration = enhancedHwAccleration;
+		this.numThreads = numThreads;
 	}
 
 	private SimilarityClassifier getClassifier() throws IOException {
@@ -148,26 +159,13 @@ public class FaceDetector {
 					TF_FD_API_MODEL_FILE,
 					TF_FD_API_LABELS_FILE,
 					TF_FD_API_INPUT_SIZE,
-					TF_FD_API_IS_QUANTIZED
+					TF_FD_API_IS_QUANTIZED,
+					hwAccleration,
+					enhancedHwAccleration,
+					numThreads
 			);
 		}
 		return classifier;
-	}
-
-	public void setUseNNAPI(boolean useNNAPI) {
-		try {
-			getClassifier().setUseNNAPI(useNNAPI);
-		} catch (IOException ignored) {
-			// if it doesn't initialize, crash at a later point.
-		}
-	}
-
-	public void setNumThreads(int numThreads) {
-		try {
-			getClassifier().setNumThreads(numThreads);
-		} catch (IOException ignored) {
-			// if it doesn't initialize, crash at a later point.
-		}
 	}
 
 	public List<Face> detectFaces(InputImage input) {

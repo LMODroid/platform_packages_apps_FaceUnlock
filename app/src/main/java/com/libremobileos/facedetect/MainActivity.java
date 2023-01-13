@@ -126,7 +126,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
 
-    detector = FaceFinder.create(this, previewWidth, previewHeight, sensorOrientation);
+    detector = FaceFinder.create(this, previewWidth, previewHeight, sensorOrientation, newHwAccel, newEnhanceHw, newNumThreads);
   }
 
 
@@ -164,20 +164,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   @Override
   protected Size getDesiredPreviewFrameSize() {
     return DESIRED_PREVIEW_SIZE;
-  }
-
-  @Override
-  protected void setUseNNAPI(final boolean isChecked) {
-    runInBackground(() -> {
-      detector.setUseNNAPI(isChecked);
-    });
-  }
-
-  @Override
-  protected void setNumThreads(final int numThreads) {
-    runInBackground(() -> {
-      detector.setNumThreads(numThreads);
-    });
   }
 
   private void showAddFaceDialog(SimilarityClassifier.Recognition rec) {

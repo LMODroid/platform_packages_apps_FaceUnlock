@@ -17,25 +17,19 @@ public class FaceFinder {
 	private final FaceScanner faceScanner;
 	private final int sensorOrientation;
 
-	private FaceFinder(Context ctx, int inputWidth, int inputHeight, int sensorOrientation) {
-		this.faceDetector = FaceDetector.create(ctx);
-		this.faceScanner = FaceScanner.create(ctx);
+	private FaceFinder(Context ctx, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+		this.faceDetector = FaceDetector.create(ctx, hwAccleration, enhancedHwAccleration, numThreads);
+		this.faceScanner = FaceScanner.create(ctx, hwAccleration, enhancedHwAccleration, numThreads);
 		this.sensorOrientation = sensorOrientation;
 		this.detectorInputProc = new FaceDetector.InputImageProcessor(inputWidth, inputHeight, sensorOrientation);
 	}
 
+	public static FaceFinder create(Context ctx, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+		return new FaceFinder(ctx, inputWidth, inputHeight, sensorOrientation, hwAccleration, enhancedHwAccleration, numThreads);
+	}
+
 	public static FaceFinder create(Context ctx, int inputWidth, int inputHeight, int sensorOrientation) {
-		return new FaceFinder(ctx, inputWidth, inputHeight, sensorOrientation);
-	}
-
-	public void setUseNNAPI(boolean useNNAPI) {
-		faceScanner.setUseNNAPI(useNNAPI);
-		faceDetector.setUseNNAPI(useNNAPI);
-	}
-
-	public void setNumThreads(int numThreads) {
-		faceScanner.setNumThreads(numThreads);
-		faceDetector.setNumThreads(numThreads);
+		return create(ctx, inputWidth, inputHeight, sensorOrientation, false, true, 4);
 	}
 
 	public Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>> /* detected faces */, Long /* processing time */> process(Bitmap input) {

@@ -21,7 +21,6 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.os.Trace;
-import android.util.Pair;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -37,7 +36,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
+
+import org.tensorflow.lite.DelegateFactory;
 import org.tensorflow.lite.Interpreter;
+import org.tensorflow.lite.gpu.CompatibilityList;
+import org.tensorflow.lite.gpu.GpuDelegate;
+import org.tensorflow.lite.nnapi.NnApiDelegate;
 
 /**
  * Wrapper for frozen detection models trained using the Tensorflow Object Detection API
@@ -55,8 +59,6 @@ import org.tensorflow.lite.Interpreter;
   private static final float IMAGE_MEAN = 127.5f;
   private static final float IMAGE_STD = 127.5f;
 
-  // Number of threads in the java app
-  private static final int NUM_THREADS = 4;
   private boolean isModelQuantized;
   // Config values.
   private int inputSize;
@@ -110,7 +112,10 @@ import org.tensorflow.lite.Interpreter;
       final String modelFilename,
       final String labelFilename,
       final int inputSize,
-      final boolean isQuantized)
+      final boolean isQuantized,
+      final boolean hwAccleration,
+      final boolean useEnhancedAccleration, // if hwAccleration==true, setting this uses NNAPI instead of GPU. if false, it toggles XNNPACK
+      final int numThreads)
       throws IOException {
 
     final TFLiteObjectDetectionAPIModel d = new TFLiteObjectDetectionAPIModel();
@@ -126,8 +131,19 @@ import org.tensorflow.lite.Interpreter;
 
     d.inputSize = inputSize;
 
+    Interpreter.Options options = new Interpreter.Options();
+    options.setNumThreads(numThreads);
+    options.setUseXNNPACK(hwAccleration || useEnhancedAccleration);
+    if (hwAccleration) {
+      if (useEnhancedAccleration) {
+        options.addDelegate(new NnApiDelegate());
+      } else {
+        options.addDelegate(new GpuDelegate());
+      }
+    }
+
     try {
-      d.tfLite = new Interpreter(loadModelFile(assetManager, modelFilename));
+      d.tfLite = new Interpreter(loadModelFile(assetManager, modelFilename), options);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -144,7 +160,6 @@ import org.tensorflow.lite.Interpreter;
     d.imgData.order(ByteOrder.nativeOrder());
     d.intValues = new int[d.inputSize * d.inputSize];
 
-    d.setNumThreads(NUM_THREADS);
     d.outputLocations = new float[1][NUM_DETECTIONS][4];
     d.outputClasses = new float[1][NUM_DETECTIONS];
     d.outputScores = new float[1][NUM_DETECTIONS];
@@ -254,15 +269,5 @@ import org.tensorflow.lite.Interpreter;
 
     Trace.endSection();
     return recognitions;
-  }
-
-  @Override
-  public void setNumThreads(int num_threads) {
-    //if (tfLite != null) tfLite.setNumThreads(num_threads);
-  }
-
-  @Override
-  public void setUseNNAPI(boolean isChecked) {
-    //if (tfLite != null) tfLite.setUseNNAPI(isChecked);
   }
 }

@@ -89,7 +89,7 @@ public abstract class CameraActivity extends AppCompatActivity
   protected TextView frameValueTextView, inferenceTimeTextView;
   protected ImageView bottomSheetArrowImageView;
   private ImageView plusImageView, minusImageView;
-  private SwitchCompat apiSwitchCompat;
+  private SwitchCompat apiSwitchCompat, newApiSwitchCompat;
   private TextView threadsTextView;
 
   private FloatingActionButton btnSwitchCam;
@@ -103,6 +103,11 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
 
+  private static final String KEY_HW1 = "hw1";
+  private static final String KEY_HW2 = "hw2";
+  private static final String KEY_THREAD = "thread";
+  protected boolean newEnhanceHw, newHwAccel;
+    protected int newNumThreads;
 
 
   @Override
@@ -113,6 +118,9 @@ public abstract class CameraActivity extends AppCompatActivity
     Intent intent = getIntent();
     //useFacing = intent.getIntExtra(KEY_USE_FACING, CameraCharacteristics.LENS_FACING_FRONT);
     useFacing = intent.getIntExtra(KEY_USE_FACING, CameraCharacteristics.LENS_FACING_BACK);
+    newHwAccel = intent.getBooleanExtra(KEY_HW1,false);
+    newEnhanceHw = intent.getBooleanExtra(KEY_HW2, true);
+    newNumThreads = intent.getIntExtra(KEY_THREAD, 4);
 
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -131,6 +139,7 @@ public abstract class CameraActivity extends AppCompatActivity
     plusImageView = findViewById(R.id.plus);
     minusImageView = findViewById(R.id.minus);
     apiSwitchCompat = findViewById(R.id.api_info_switch);
+    newApiSwitchCompat = findViewById(R.id.api_info_switch2);
     bottomSheetLayout = findViewById(R.id.bottom_sheet_layout);
     gestureLayout = findViewById(R.id.gesture_layout);
     sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
@@ -156,7 +165,7 @@ public abstract class CameraActivity extends AppCompatActivity
         });
     sheetBehavior.setHideable(false);
 
-    sheetBehavior.setBottomSheetCallback(
+    sheetBehavior.addBottomSheetCallback(
         new BottomSheetBehavior.BottomSheetCallback() {
           @Override
           public void onStateChanged(@NonNull View bottomSheet, int newState) {
@@ -187,16 +196,29 @@ public abstract class CameraActivity extends AppCompatActivity
     inferenceTimeTextView = findViewById(R.id.inference_info);
 
     apiSwitchCompat.setOnCheckedChangeListener(this);
+    newApiSwitchCompat.setOnCheckedChangeListener((view, newValue) -> {
+        if (newEnhanceHw != newValue) {
+            newEnhanceHw = newValue;
+            restart();
+        }
+    });
+
+    if (newHwAccel) {
+      if (newEnhanceHw) newApiSwitchCompat.setText("NNAPI");
+      else newApiSwitchCompat.setText("GPU");
+      apiSwitchCompat.setText("HW");
+    } else {
+      apiSwitchCompat.setText("CPU");
+      newApiSwitchCompat.setText("XNNPACK");
+    }
+    apiSwitchCompat.setChecked(newHwAccel);
+    newApiSwitchCompat.setChecked(newEnhanceHw);
+    threadsTextView.setText(String.valueOf(newNumThreads));
 
     plusImageView.setOnClickListener(this);
     minusImageView.setOnClickListener(this);
 
-    btnSwitchCam.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        onSwitchCamClick();
-      }
-    });
+    btnSwitchCam.setOnClickListener(v -> onSwitchCamClick());
 
   }
 
@@ -217,10 +239,23 @@ public abstract class CameraActivity extends AppCompatActivity
     }
 
     intent.putExtra(KEY_USE_FACING, useFacing);
+    intent.putExtra(KEY_HW1, newHwAccel);
+    intent.putExtra(KEY_HW2, newEnhanceHw);
+    intent.putExtra(KEY_THREAD, newNumThreads);
     intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 
     restartWith(intent);
 
+  }
+
+  public void restart() {
+    Intent intent = getIntent();
+    intent.putExtra(KEY_USE_FACING, useFacing);
+    intent.putExtra(KEY_HW1, newHwAccel);
+    intent.putExtra(KEY_HW2, newEnhanceHw);
+    intent.putExtra(KEY_THREAD, newNumThreads);
+    intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+    restartWith(intent);
   }
 
   private void restartWith(Intent intent) {
@@ -591,9 +626,10 @@ public abstract class CameraActivity extends AppCompatActivity
 
   @Override
   public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-    setUseNNAPI(isChecked);
-    if (isChecked) apiSwitchCompat.setText("NNAPI");
-    else apiSwitchCompat.setText("TFLITE");
+    if (isChecked != newHwAccel) {
+      newHwAccel = isChecked;
+      restart();
+    }
   }
 
   @Override
@@ -603,8 +639,10 @@ public abstract class CameraActivity extends AppCompatActivity
       int numThreads = Integer.parseInt(threads);
       if (numThreads >= 9) return;
       numThreads++;
-      threadsTextView.setText(String.valueOf(numThreads));
-      setNumThreads(numThreads);
+      if (newNumThreads != numThreads) {
+        newNumThreads = numThreads;
+        restart();
+      }
     } else if (v.getId() == R.id.minus) {
       String threads = threadsTextView.getText().toString().trim();
       int numThreads = Integer.parseInt(threads);
@@ -613,7 +651,10 @@ public abstract class CameraActivity extends AppCompatActivity
       }
       numThreads--;
       threadsTextView.setText(String.valueOf(numThreads));
-      setNumThreads(numThreads);
+        if (newNumThreads != numThreads) {
+            newNumThreads = numThreads;
+            restart();
+        }
     }
   }
 
@@ -632,8 +673,4 @@ public abstract class CameraActivity extends AppCompatActivity
   protected abstract int getLayoutId();
 
   protected abstract Size getDesiredPreviewFrameSize();
-
-  protected abstract void setNumThreads(int numThreads);
-
-  protected abstract void setUseNNAPI(boolean isChecked);
 }
