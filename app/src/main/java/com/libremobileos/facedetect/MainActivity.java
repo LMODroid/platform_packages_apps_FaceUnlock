@@ -106,8 +106,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     tracker = new MultiBoxTracker(this);
 
-    detector = FaceFinder.create(this, previewWidth, previewHeight, sensorOrientation);
-
     previewWidth = size.getWidth();
     previewHeight = size.getHeight();
 
@@ -127,6 +125,8 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
             });
 
     tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
+
+    detector = FaceFinder.create(this, previewWidth, previewHeight, sensorOrientation);
   }
 
 
@@ -236,7 +236,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     List<SimilarityClassifier.Recognition> mappedRecognitions = new ArrayList<>();
 
-    Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>>, Long> faces = detector.process(rgbFrameBitmap, add);
+    Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>>, Long> faces = detector.process(rgbFrameBitmap);
     lastProcessingTimeMs = faces.second;
 
     for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : faces.first) {
@@ -249,29 +249,27 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
       final RectF boundingBox = new RectF(face.getLocation());
 
+      String id = null;
       String label = face.getTitle();
       float distance = -1f;
       int color = Color.BLUE;
       float[][] extra = null;
-      Bitmap crop = null;
+      Bitmap crop = scanned.getCrop();
 
-      FaceScanner.Face detected = null;
       for (Map.Entry<String, float[][]> possible : knownFaces.entrySet()) {
         float newdistance = scanned.compare(possible.getValue());
-        if (newdistance <= FaceScanner.MAXIMUM_DISTANCE_TF_OD_API && (detected == null || newdistance < detected.getDistance())) {
-          detected = new FaceScanner.Face(scanned.getId(), possible.getKey(), newdistance, face.getLocation(), scanned.getCrop(), possible.getValue());
+        if (newdistance <= FaceScanner.MAXIMUM_DISTANCE_TF_OD_API && (id == null || newdistance < distance)) {
+          id = scanned.getId();
+          label = possible.getKey();
+          distance = newdistance;
+          extra = possible.getValue();
         }
       }
 
       if (add) {
         extra = scanned.getExtra();
-        crop = scanned.getCrop();
-      } else if (detected != null) {
-        extra = detected.getExtra();
-        distance = detected.getDistance();
-        label = detected.getTitle();
-        crop = detected.getCrop();
-        if (detected.getId().equals("0")) {
+      } else if (id != null) {
+        if (id.equals("0")) {
           color = Color.GREEN;
         } else {
           color = Color.RED;
@@ -287,7 +285,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
         } else {
           flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
         }
-        //flip.postScale(1, -1, targetW / 2.0f, targetH / 2.0f);
         flip.mapRect(boundingBox);
 
       }
@@ -297,16 +294,10 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
       result.setColor(color);
       result.setLocation(boundingBox);
-      result.setExtra(add ? extra : null); //ui logic excepts extra==null for now
-      result.setCrop(add ? crop : null);
+      result.setExtra(add ? extra : null); //ui logic excepts extra!=null when opening face dialog only
+      result.setCrop(crop);
       mappedRecognitions.add(result);
-
-
     }
-
-    //    if (saved) {
-//      lastSaved = System.currentTimeMillis();
-//    }
 
     updateResults(currTimestamp, mappedRecognitions);
 

@@ -38,7 +38,7 @@ public class FaceFinder {
 		faceDetector.setNumThreads(numThreads);
 	}
 
-	public Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>> /* detected faces */, Long /* processing time */> process(Bitmap input, boolean add) {
+	public Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>> /* detected faces */, Long /* processing time */> process(Bitmap input) {
 		FaceDetector.InputImage inputImage = detectorInputProc.process(input);
 
 		final long startTime1 = SystemClock.uptimeMillis();
@@ -52,7 +52,7 @@ public class FaceFinder {
 				FaceScanner.InputImage faceBmp = scannerInputProc.process(face.getLocation());
 				if (faceBmp == null) continue;
 
-				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp, add);
+				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp);
 				if (scanned == null) continue;
 
 				results.add(new Pair<>(face, scanned));

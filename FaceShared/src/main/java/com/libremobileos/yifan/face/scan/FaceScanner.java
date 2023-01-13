@@ -24,7 +24,7 @@ public class FaceScanner {
 	private static final int TF_OD_API_INPUT_SIZE = 112;
 	private static final boolean TF_OD_API_IS_QUANTIZED = false;
 	private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
-	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/labelmap.txt";
+	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
 	// Minimum detection confidence to track a detection.
 	public static final float MAXIMUM_DISTANCE_TF_OD_API = 0.8f;
 	private static final boolean MAINTAIN_ASPECT = false;
@@ -273,11 +273,11 @@ public class FaceScanner {
 		}
 	}
 
-	public Face detectFace(InputImage input, boolean add) {
+	public Face detectFace(InputImage input) {
 		try {
 			List<SimilarityClassifier.Recognition> results = getClassifier().recognizeImage(input.getProcessedImage());
 			SimilarityClassifier.Recognition result = results.get(0);
-			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, add ? input.getUserDisplayableImage() : null, result.getExtra());
+			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, input.getUserDisplayableImage(), result.getExtra());
 		} catch (IOException e) {
 			Log.e("FaceScanner", Log.getStackTraceString(e));
 			return null;
