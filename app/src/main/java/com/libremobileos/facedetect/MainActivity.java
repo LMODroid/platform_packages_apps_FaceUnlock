@@ -17,7 +17,6 @@
 package com.libremobileos.facedetect;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.Config;
 import android.graphics.Color;
@@ -28,6 +27,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.util.Pair;
 import android.util.Size;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -42,12 +42,13 @@ import com.libremobileos.facedetect.util.CameraActivity;
 import com.libremobileos.facedetect.util.Logger;
 import com.libremobileos.facedetect.util.MultiBoxTracker;
 import com.libremobileos.facedetect.util.OverlayView;
+import com.libremobileos.yifan.face.scan.FaceFinder;
 import com.libremobileos.yifan.face.scan.FaceScanner;
 import com.libremobileos.yifan.face.shared.FaceDetector;
 import com.libremobileos.yifan.face.shared.SimilarityClassifier;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -64,8 +65,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   OverlayView trackingOverlay;
   private Integer sensorOrientation;
 
-  private FaceScanner detector;
-  private FaceScanner.InputImageProcessor inputImageProcessor;
+  private FaceFinder detector;
 
   private long lastProcessingTimeMs;
   private Bitmap rgbFrameBitmap = null;
@@ -76,10 +76,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   private long timestamp = 0;
 
   private MultiBoxTracker tracker;
-
-  // Face detector
-  private FaceDetector faceDetector;
-  private FaceDetector.InputImageProcessor detectorInputImageProcessor;
 
   private HashMap<String, float[][]> knownFaces = new HashMap<>();
 
@@ -110,12 +106,7 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     tracker = new MultiBoxTracker(this);
 
-
-    detector /* face auth */  =
-            FaceScanner.create(this);
-
-    faceDetector /* find face */ =
-            FaceDetector.create(this);
+    detector = FaceFinder.create(this, previewWidth, previewHeight, sensorOrientation);
 
     previewWidth = size.getWidth();
     previewHeight = size.getHeight();
@@ -135,8 +126,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
               }
             });
 
-    detectorInputImageProcessor = new FaceDetector.InputImageProcessor(previewWidth, previewHeight, sensorOrientation);
-    inputImageProcessor = new FaceScanner.InputImageProcessor(sensorOrientation);
     tracker.setFrameConfiguration(previewWidth, previewHeight, sensorOrientation);
   }
 
@@ -160,17 +149,9 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
 
     readyForNextImage();
 
-    FaceDetector.InputImage croppedBitmap = detectorInputImageProcessor.process(rgbFrameBitmap);
-
-    // 匿名类
     runInBackground(
             () -> {
-              LOGGER.i("Running detection on image " + currTimestamp);
-              final long startTime = SystemClock.uptimeMillis();
-              final List<FaceDetector.Face> results = faceDetector.detectFaces(croppedBitmap);
-              lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
-
-              onFacesDetected(currTimestamp, results, addPending);
+              onFacesDetected(currTimestamp, rgbFrameBitmap, addPending);
               addPending = false;
             });
   }
@@ -189,7 +170,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   protected void setUseNNAPI(final boolean isChecked) {
     runInBackground(() -> {
       detector.setUseNNAPI(isChecked);
-      faceDetector.setUseNNAPI(isChecked);
     });
   }
 
@@ -197,7 +177,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
   protected void setNumThreads(final int numThreads) {
     runInBackground(() -> {
       detector.setNumThreads(numThreads);
-      faceDetector.setNumThreads(numThreads);
     });
   }
 
@@ -214,18 +193,14 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     ivFace.setImageBitmap(rec.getCrop());
     etName.setHint("Input name");
 
-    builder.setPositiveButton("OK", new DialogInterface.OnClickListener(){
-      @Override
-      public void onClick(DialogInterface dlg, int i) {
-
-          String name = etName.getText().toString();
-          if (name.isEmpty()) {
-              return;
-          }
-          //detector.register(name, rec);
-          knownFaces.put(name, rec.getExtra());
-          dlg.dismiss();
-      }
+    builder.setPositiveButton("OK", (dlg, i) -> {
+        String name = etName.getText().toString();
+        if (name.isEmpty()) {
+            return;
+        }
+        //detector.register(name, rec);
+        knownFaces.put(name, rec.getExtra());
+        dlg.dismiss();
     });
     builder.setView(dialogLayout);
     builder.show();
@@ -249,29 +224,28 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
     }
 
     runOnUiThread(
-            new Runnable() {
-              @Override
-              public void run() {
-                showFrameInfo(previewWidth + "x" + previewHeight);
-                showInference(lastProcessingTimeMs + "ms");
-              }
+            () -> {
+              showFrameInfo(previewWidth + "x" + previewHeight);
+              showInference(lastProcessingTimeMs + "ms");
             });
 
   }
 
-  private void onFacesDetected(long currTimestamp, List<FaceDetector.Face> faces, boolean add) {
+  private void onFacesDetected(long currTimestamp, Bitmap rgbFrameBitmap, boolean add) {
     // TODO move this to yifan.face package to make this recycle-able code
-    final List<SimilarityClassifier.Recognition> mappedRecognitions =
-            new LinkedList<>();
 
-    Bitmap portraitImage = inputImageProcessor.transformRawImageToPortrait(rgbFrameBitmap);
+    List<SimilarityClassifier.Recognition> mappedRecognitions = new ArrayList<>();
 
-    for (FaceDetector.Face face : faces) {
+    Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>>, Long> faces = detector.process(rgbFrameBitmap, add);
+    lastProcessingTimeMs = faces.second;
+
+    for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : faces.first) {
+
+      FaceDetector.Face face = faceFacePair.first;
+      FaceScanner.Face scanned = faceFacePair.second;
 
       LOGGER.i("FACE" + face.toString());
       LOGGER.i("Running detection on face " + currTimestamp);
-      FaceScanner.InputImage faceBmp = inputImageProcessor.process(rgbFrameBitmap, portraitImage, face.getLocation());
-      if (faceBmp == null) continue;
 
       final RectF boundingBox = new RectF(face.getLocation());
 
@@ -281,10 +255,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
       float[][] extra = null;
       Bitmap crop = null;
 
-      final long startTime = SystemClock.uptimeMillis();
-      final FaceScanner.Face scanned = detector.detectFace(faceBmp, add);
-      lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
-
       FaceScanner.Face detected = null;
       for (Map.Entry<String, float[][]> possible : knownFaces.entrySet()) {
         float newdistance = scanned.compare(possible.getValue());
@@ -293,7 +263,10 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
         }
       }
 
-      if (detected != null) {
+      if (add) {
+        extra = scanned.getExtra();
+        crop = scanned.getCrop();
+      } else if (detected != null) {
         extra = detected.getExtra();
         distance = detected.getDistance();
         label = detected.getTitle();
@@ -303,9 +276,6 @@ public class MainActivity extends CameraActivity implements OnImageAvailableList
         } else {
           color = Color.RED;
         }
-      } else if (add) {
-        extra = scanned.getExtra();
-        crop = scanned.getCrop();
       }
 
       if (getCameraFacing() == CameraCharacteristics.LENS_FACING_FRONT) {

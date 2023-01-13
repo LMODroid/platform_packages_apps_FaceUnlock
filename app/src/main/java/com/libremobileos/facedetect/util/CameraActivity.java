@@ -86,7 +86,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private LinearLayout gestureLayout;
   private BottomSheetBehavior<LinearLayout> sheetBehavior;
 
-  protected TextView frameValueTextView, cropValueTextView, inferenceTimeTextView;
+  protected TextView frameValueTextView, inferenceTimeTextView;
   protected ImageView bottomSheetArrowImageView;
   private ImageView plusImageView, minusImageView;
   private SwitchCompat apiSwitchCompat;
@@ -184,7 +184,6 @@ public abstract class CameraActivity extends AppCompatActivity
         });
 
     frameValueTextView = findViewById(R.id.frame_info);
-    cropValueTextView = findViewById(R.id.crop_info);
     inferenceTimeTextView = findViewById(R.id.inference_info);
 
     apiSwitchCompat.setOnCheckedChangeListener(this);
@@ -620,10 +619,6 @@ public abstract class CameraActivity extends AppCompatActivity
 
   protected void showFrameInfo(String frameInfo) {
     frameValueTextView.setText(frameInfo);
-  }
-
-  protected void showCropInfo(String cropInfo) {
-    cropValueTextView.setText(cropInfo);
   }
 
   protected void showInference(String inferenceTime) {

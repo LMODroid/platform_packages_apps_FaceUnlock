@@ -5,10 +5,8 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.Log;
-import android.util.Pair;
 
 import androidx.annotation.NonNull;
 
@@ -16,10 +14,8 @@ import com.libremobileos.yifan.face.shared.ImageUtils;
 import com.libremobileos.yifan.face.shared.SimilarityClassifier;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 public class FaceScanner {
 	private final AssetManager am;
@@ -53,12 +49,33 @@ public class FaceScanner {
 
 	public static class InputImageProcessor {
 		private final int sensorOrientation;
+		private final Bitmap portraitBmp;
+		private final Matrix transform;
 
-		public InputImageProcessor(int sensorOrientation) {
+		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
 			this.sensorOrientation = sensorOrientation;
+			//TODO replace this mess with ImageUtils transform
+			int targetW, targetH;
+			if (sensorOrientation == 90 || sensorOrientation == 270) {
+				targetH = rawImage.getWidth();
+				targetW = rawImage.getHeight();
+			} else {
+				targetW = rawImage.getWidth();
+				targetH = rawImage.getHeight();
+			}
+			Bitmap portraitBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
+			transform = createTransform(
+					rawImage.getWidth(),
+					rawImage.getHeight(),
+					targetW,
+					targetH,
+					sensorOrientation);
+			final Canvas cv = new Canvas(portraitBmp);
+			cv.drawBitmap(rawImage, transform, null);
+			this.portraitBmp = portraitBmp;
 		}
 
-		public InputImage process(Bitmap input) {
+		public static InputImage process(Bitmap input, int sensorOrientation) {
 			Matrix frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
 							input.getWidth(), input.getHeight(),
@@ -70,65 +87,39 @@ public class FaceScanner {
 			return new InputImage(croppedBitmap, input);
 		}
 
-		// utility because everyone is lazy :D
-		public InputImage process(Bitmap fullInput, Bitmap input, RectF inputBB) {
-			//TODO cleanup
-			Matrix transform = createTransform(
-					fullInput.getWidth(),
-					fullInput.getHeight(),
-					input.getWidth(),
-					input.getHeight(),
-					sensorOrientation);
+		public InputImage process(Bitmap input) {
+			return process(input, sensorOrientation);
+		}
+
+		public InputImage process(RectF inputBB) {
 			RectF faceBB = new RectF(inputBB);
 			transform.mapRect(faceBB);
 			if (faceBB.left < 0 || faceBB.top < 0 || faceBB.bottom < 0 ||
-					faceBB.right < 0 || (faceBB.left + faceBB.width()) > input.getWidth()
-					|| (faceBB.top + faceBB.height()) > input.getHeight()) return null;
-			return process(Bitmap.createBitmap(input,
+					faceBB.right < 0 || (faceBB.left + faceBB.width()) > portraitBmp.getWidth()
+					|| (faceBB.top + faceBB.height()) > portraitBmp.getHeight()) return null;
+			return process(Bitmap.createBitmap(portraitBmp,
 					(int) faceBB.left,
 					(int) faceBB.top,
 					(int) faceBB.width(),
 					(int) faceBB.height()));
 		}
 
-		public Bitmap transformRawImageToPortrait(Bitmap input) {
-			//TODO replace this mess with ImageUtils transform
-			int targetW, targetH;
-			if (sensorOrientation == 90 || sensorOrientation == 270) {
-				targetH = input.getWidth();
-				targetW = input.getHeight();
-			} else {
-				targetW = input.getWidth();
-				targetH = input.getHeight();
+		private static Matrix createTransform( //should be removed while reworking portraitBmp creation
+		                                       final int srcWidth,
+		                                       final int srcHeight,
+		                                       final int dstWidth,
+		                                       final int dstHeight,
+		                                       final int applyRotation) {
+			Matrix matrix = new Matrix();
+			if (applyRotation != 0) {
+				matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
+				matrix.postRotate(applyRotation);
+				matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
 			}
-			Bitmap portraitBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
-			Matrix transform = createTransform(
-					input.getWidth(),
-					input.getHeight(),
-					targetW,
-					targetH,
-					sensorOrientation);
-			final Canvas cv = new Canvas(portraitBmp);
-			cv.drawBitmap(input, transform, null);
-			return portraitBmp;
+			return matrix;
 		}
-	}
 
-	private static Matrix createTransform( //should be removed while reworking transformRawImageToPortrait
-			final int srcWidth,
-			final int srcHeight,
-			final int dstWidth,
-			final int dstHeight,
-			final int applyRotation) {
-		Matrix matrix = new Matrix();
-		if (applyRotation != 0) {
-			matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
-			matrix.postRotate(applyRotation);
-			matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
-		}
-		return matrix;
 	}
-
 
 	/** An immutable result returned by a FaceDetector describing what was recognized. */
 	public static class Face {
@@ -288,7 +279,7 @@ public class FaceScanner {
 			SimilarityClassifier.Recognition result = results.get(0);
 			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, add ? input.getUserDisplayableImage() : null, result.getExtra());
 		} catch (IOException e) {
-			Log.e("FaceDetector", Log.getStackTraceString(e));
+			Log.e("FaceScanner", Log.getStackTraceString(e));
 			return null;
 		}
 	}
