@@ -1,5 +1,7 @@
 package com.libremobileos.facedetect;
 
+import android.content.res.Configuration;
+import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.Log;
@@ -10,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
@@ -33,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
 	private PreviewView previewView;
 	private FaceFinder faceFinder;
 	private FaceBoundsOverlayView overlayView;
+	private final Size desiredInputSize = new Size(640, 480);
+	private final int selectedCamera = CameraSelector.LENS_FACING_FRONT;
+	private int previewWidth, previewHeight;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -42,9 +48,16 @@ public class MainActivity extends AppCompatActivity {
 		previewView.setScaleType(PreviewView.ScaleType.FIT_CENTER);
 		overlayView = findViewById(R.id.overlay);
 
-		cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-		faceFinder = FaceFinder.create(this, 480, 640, 0);
+		/* cameras are landscape */
+		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+			previewWidth = desiredInputSize.getHeight();
+			previewHeight = desiredInputSize.getWidth();
+		} else {
+			previewWidth = desiredInputSize.getWidth();
+			previewHeight = desiredInputSize.getHeight();
+		}
 
+		cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 		cameraProviderFuture.addListener(() -> {
 			try {
 				ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
@@ -63,29 +76,44 @@ public class MainActivity extends AppCompatActivity {
 				.build();
 
 		CameraSelector cameraSelector = new CameraSelector.Builder()
-				.requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+				.requireLensFacing(selectedCamera)
 				.build();
 
 		preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
 		ImageAnalysis imageAnalysis =
 				new ImageAnalysis.Builder()
-						.setTargetResolution(new Size(480, 640))
+						.setTargetResolution(new Size(previewWidth, previewHeight))
 						.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
 						.build();
 
 		imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
 			Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>>, Long> data = faceFinder.process(BitmapUtils.getBitmap(imageProxy));
 			ArrayList<RectF> bounds = new ArrayList<>();
+			Log.i("cam", String.valueOf(imageProxy.getImageInfo().getRotationDegrees()));
 			for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : data.first) {
-				Log.i("face", "found face id=" + faceFacePair.first.getId() + " conf=" + faceFacePair.first.getConfidence() + " loc=" + faceFacePair.first.getLocation());
-				bounds.add(faceFacePair.first.getLocation());
+				RectF boundingBox = new RectF(faceFacePair.first.getLocation());
+				if (selectedCamera == CameraSelector.LENS_FACING_FRONT) {
+					// camera is frontal so the image is flipped horizontally
+					// flips horizontally
+					Matrix flip = new Matrix();
+					int sensorOrientation = imageProxy.getImageInfo().getRotationDegrees();
+					if (sensorOrientation == 0 || sensorOrientation == 180) {
+						flip.postScale(1, -1, previewWidth / 2.0f, previewHeight / 2.0f);
+					} else {
+						flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
+					}
+					flip.mapRect(boundingBox);
+				}
+				bounds.add(boundingBox);
 			}
-			overlayView.updateBounds(bounds.toArray(new RectF[0]));
+			overlayView.updateBounds(bounds.toArray(new RectF[0]), previewWidth, previewHeight);
 			imageProxy.close();
 		});
 
-		cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, imageAnalysis, preview);
+		Camera camera = cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, imageAnalysis, preview);
+
+		faceFinder = FaceFinder.create(this, previewWidth, previewHeight, 0);
 	}
 
 }
