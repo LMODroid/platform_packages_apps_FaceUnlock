@@ -45,7 +45,7 @@ public class FaceScanner {
 	private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
 	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
 	// Minimum detection confidence to track a detection.
-	public static final float MAXIMUM_DISTANCE_TF_OD_API = 0.8f;
+	public static final float MAXIMUM_DISTANCE_TF_OD_API = 0.7f;
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 

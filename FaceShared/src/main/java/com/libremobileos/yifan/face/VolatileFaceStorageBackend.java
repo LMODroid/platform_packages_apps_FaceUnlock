@@ -35,7 +35,7 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
-	protected boolean registerInternal(String name, String data) {
+	protected boolean registerInternal(String name, String data, boolean duplicate) {
 		throw new RuntimeException("Stub!");
 	}
 
@@ -55,7 +55,7 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
-	public boolean register(String rawname, float[][] alldata) {
+	public boolean register(String rawname, float[][] alldata, boolean replace) {
 		cachedNames.add(rawname);
 		cachedData.put(rawname, alldata);
 		return true;

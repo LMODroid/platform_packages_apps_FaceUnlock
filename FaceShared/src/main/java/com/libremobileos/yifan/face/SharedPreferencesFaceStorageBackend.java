@@ -17,7 +17,7 @@ public class SharedPreferencesFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
-	protected boolean registerInternal(String name, String data) {
+	protected boolean registerInternal(String name, String data, boolean replace) {
 		return prefs.edit().putString(name, data).commit();
 	}
 

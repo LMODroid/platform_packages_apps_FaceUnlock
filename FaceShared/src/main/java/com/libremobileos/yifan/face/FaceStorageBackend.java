@@ -43,10 +43,12 @@ public abstract class FaceStorageBackend {
 		return (cachedNames = getNamesInternal().stream().map(v -> new String(decoder.decode(v), StandardCharsets.UTF_8)).collect(Collectors.toSet()));
 	}
 
-	public boolean register(String rawname, float[][] alldata) {
+	public boolean register(String rawname, float[][] alldata, boolean replace) {
 		String name = encoder.encodeToString(rawname.getBytes(StandardCharsets.UTF_8));
-		if (getNamesInternal().contains(name))
+		boolean duplicate = getNamesInternal().contains(name);
+		if (duplicate && !replace) {
 			return false;
+		}
 		cachedNames.add(rawname);
 		cachedData.put(rawname, alldata);
 		StringBuilder b = new StringBuilder();
@@ -57,11 +59,32 @@ public abstract class FaceStorageBackend {
 			}
 			b.append(encoder.encodeToString(buff.array())).append(":");
 		}
-		return registerInternal(name, b.substring(0, b.length() - 1));
+		return registerInternal(name, b.substring(0, b.length() - 1), duplicate);
+	}
+
+	public boolean register(String rawname, float[][] alldata) {
+		return register(rawname, alldata, false);
 	}
 
 	public boolean register(String rawname, float[] alldata) {
 		return register(rawname, new float[][] { alldata });
+	}
+
+	public boolean extendRegistered(String rawname, float[] alldata, boolean add) {
+		if (!getNames().contains(rawname)) {
+			if (!add)
+				return false;
+			return register(rawname, alldata);
+		}
+		float[][] array1 = get(rawname);
+		float[][] combinedArray = new float[array1.length + 1][];
+		System.arraycopy(array1, 0, combinedArray, 0, array1.length);
+		combinedArray[array1.length] = alldata;
+		return register(rawname, combinedArray, true);
+	}
+
+	public boolean extendRegistered(String rawname, float[] alldata) {
+		return extendRegistered(rawname, alldata, false);
 	}
 
 	public float[][] get(String name) {
@@ -86,7 +109,7 @@ public abstract class FaceStorageBackend {
 	}
 
 	protected abstract Set<String> getNamesInternal();
-	protected abstract boolean registerInternal(String name, String data);
+	protected abstract boolean registerInternal(String name, String data, boolean duplicate);
 	protected abstract String getInternal(String name);
 	protected abstract boolean deleteInternal(String name);
 

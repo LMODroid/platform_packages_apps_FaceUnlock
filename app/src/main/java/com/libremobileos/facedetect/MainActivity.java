@@ -146,17 +146,17 @@ public class MainActivity extends AppCompatActivity {
 
 				// Generate UI text for face
 				String uiText;
+				// Do we want to add a new face?
+				if (addPending) {
+					// If we want to add a new face, show the dialog.
+					runOnUiThread(() -> showAddFaceDialog(face));
+					addPending = false;
+				}
 				// Do we have any match?
 				if (face.isRecognized()) {
 					// If yes, show the user-visible ID and the detection confidence
-					uiText = face.getTitle() + " " + face.getDistance();
+					uiText = face.getModelCount() + " " + face.getTitle() + " " + face.getDistance();
 				} else {
-					// If no, do we want to add a new face?
-					if (addPending) {
-						// If we want to add a new face, show the dialog.
-						runOnUiThread(() -> showAddFaceDialog(face));
-						addPending = false;
-					}
 					// Show detected object type (always "Face") and how confident the AI is that this is an Face
 					uiText = face.getTitle() + " " + face.getConfidence();
 				}
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
 		});
 
 		// Bind all objects together
-		/* Camera camera = */ cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, imageAnalysis, preview);
+		/* Camera camera = */ cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview);
 
 		// Create AI-based face detection
 		//faceStorage = new VolatileFaceStorageBackend();
@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
 				return;
 			}
 			// Save facial features in knownFaces
-			if (!faceStorage.register(name, rec.getExtra())) {
+			if (!faceStorage.extendRegistered(name, rec.getExtra(), true)) {
 				Toast.makeText(this, R.string.register_failed, Toast.LENGTH_LONG).show();
 			}
 			dlg.dismiss();
