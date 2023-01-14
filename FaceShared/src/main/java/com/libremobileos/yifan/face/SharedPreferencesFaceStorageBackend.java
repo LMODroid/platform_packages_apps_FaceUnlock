@@ -25,4 +25,9 @@ public class SharedPreferencesFaceStorageBackend extends FaceStorageBackend {
 	protected String getInternal(String name) {
 		return prefs.getString(name, null);
 	}
+
+	@Override
+	protected boolean deleteInternal(String name) {
+		return prefs.edit().remove(name).commit();
+	}
 }

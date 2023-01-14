@@ -79,9 +79,16 @@ public abstract class FaceStorageBackend {
 		return f;
 	}
 
+	public boolean delete(String name) {
+		cachedNames.remove(name);
+		cachedData.remove(name);
+		return deleteInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8)));
+	}
+
 	protected abstract Set<String> getNamesInternal();
 	protected abstract boolean registerInternal(String name, String data);
 	protected abstract String getInternal(String name);
+	protected abstract boolean deleteInternal(String name);
 
 	protected @Nullable Set<String> getNamesCached() {
 		return cachedNames;

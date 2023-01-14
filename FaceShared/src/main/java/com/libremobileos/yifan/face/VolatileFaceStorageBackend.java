@@ -45,6 +45,11 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
+	protected boolean deleteInternal(String name) {
+		return true;
+	}
+
+	@Override
 	public Set<String> getNames() {
 		return getNamesCached();
 	}
