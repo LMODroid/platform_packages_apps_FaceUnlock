@@ -43,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
 		overlayView = findViewById(R.id.overlay);
 
 		cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-		faceFinder = FaceFinder.create(this, 640, 480, 90);
+		faceFinder = FaceFinder.create(this, 480, 640, 0);
 
 		cameraProviderFuture.addListener(() -> {
 			try {
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
 		ImageAnalysis imageAnalysis =
 				new ImageAnalysis.Builder()
-						.setTargetResolution(new Size(640, 480))
+						.setTargetResolution(new Size(480, 640))
 						.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
 						.build();
 

@@ -38,8 +38,6 @@ public class FaceBoundsOverlayView extends View {
 
 	public FaceBoundsOverlayView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
 		super(context, attrs, defStyleAttr, defStyleRes);
-
-		setWillNotDraw(false);
 	}
 
 	@Override
@@ -57,7 +55,6 @@ public class FaceBoundsOverlayView extends View {
 			transform.mapRect(rect);
 			rect.offset(0, extra);
 			canvas.drawRect(rect, paint);
-			Log.i("face", Arrays.toString(bounds));
 		}
 	}
 
@@ -66,12 +63,12 @@ public class FaceBoundsOverlayView extends View {
 		super.onSizeChanged(w, h, oldw, oldh);
 		int newh = (w / 3) * 4;
 		extra = (h - newh) / 2;
-		transform = ImageUtils.getTransformationMatrix(640, 480, w, newh, 0, false);
+		transform = ImageUtils.getTransformationMatrix(480, 640, w, newh, 0, false);
+		transform.preScale(-1, 1, 480 / 2, 640 / 2); // swap x axis
 	}
 
 	public void updateBounds(RectF[] bounds) {
 		this.bounds = bounds;
-		//this.bounds = new RectF[] { new RectF(0, 0, 640/2, 480) };
 		invalidate();
 	}
 }
