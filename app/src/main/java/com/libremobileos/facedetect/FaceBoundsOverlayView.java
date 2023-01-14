@@ -7,16 +7,19 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Pair;
 import android.view.View;
 
 import androidx.annotation.Nullable;
 
 import com.libremobileos.yifan.face.shared.ImageUtils;
 
+import java.util.List;
+
 public class FaceBoundsOverlayView extends View {
 
-	private RectF[] bounds = null;
-	private Paint paint = null;
+	private List<Pair<RectF, String>> bounds = null;
+	private Paint paint, textPaint;
 	private Matrix transform = null;
 	private int extraw, extrah, viewraww, viewrawh, sensorWidth, sensorHeight;
 
@@ -41,8 +44,10 @@ public class FaceBoundsOverlayView extends View {
 		super.onDraw(canvas);
 		if (bounds == null || transform == null || paint == null)
 			return; // am I ready yet?
- 		for (RectF bound : bounds) {
-			canvas.drawRect(bound, paint);
+ 		for (Pair<RectF, String> bound : bounds) {
+			canvas.drawRect(bound.first, paint);
+			if (bound.second != null)
+				canvas.drawText(bound.second, bound.first.left, bound.first.bottom, textPaint);
 		}
 	}
 
@@ -55,7 +60,7 @@ public class FaceBoundsOverlayView extends View {
 	}
 
 	// please give me RectF's that wont be used otherwise as I modify them
-	public void updateBounds(RectF[] inputBounds, int sensorWidth, int sensorHeight) {
+	public void updateBounds(List<Pair<RectF, String>> inputBounds, int sensorWidth, int sensorHeight) {
 		this.bounds = inputBounds;
 		// if we have no paint yet, make one
 		if (paint == null) {
@@ -63,6 +68,11 @@ public class FaceBoundsOverlayView extends View {
 			paint.setStyle(Paint.Style.STROKE);
 			paint.setStrokeWidth(10f);
 			paint.setColor(Color.RED);
+		}
+		if (textPaint == null) {
+			textPaint = new Paint();
+			textPaint.setColor(Color.RED);
+			textPaint.setTextSize(100);
 		}
 		// if camera size or view size changed, recalculate it
 		if (this.sensorWidth != sensorWidth || this.sensorHeight != sensorHeight || (viewraww + viewrawh) > 0) {
@@ -88,9 +98,9 @@ public class FaceBoundsOverlayView extends View {
 			viewraww = 0; viewrawh = 0;
 		}
 		// map bounds to view size
-		for (RectF bound : bounds) {
-			transform.mapRect(bound);
-			bound.offset(extraw, extrah);
+		for (Pair<RectF, String> bound : bounds) {
+			transform.mapRect(bound.first);
+			bound.first.offset(extraw, extrah);
 		}
 		invalidate();
 	}
