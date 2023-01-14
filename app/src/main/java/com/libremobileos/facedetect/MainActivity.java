@@ -90,19 +90,13 @@ public class MainActivity extends AppCompatActivity {
 		imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
 			Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>>, Long> data = faceFinder.process(BitmapUtils.getBitmap(imageProxy));
 			ArrayList<RectF> bounds = new ArrayList<>();
-			Log.i("cam", String.valueOf(imageProxy.getImageInfo().getRotationDegrees()));
 			for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : data.first) {
 				RectF boundingBox = new RectF(faceFacePair.first.getLocation());
 				if (selectedCamera == CameraSelector.LENS_FACING_FRONT) {
 					// camera is frontal so the image is flipped horizontally
 					// flips horizontally
 					Matrix flip = new Matrix();
-					int sensorOrientation = imageProxy.getImageInfo().getRotationDegrees();
-					if (sensorOrientation == 0 || sensorOrientation == 180) {
-						flip.postScale(1, -1, previewWidth / 2.0f, previewHeight / 2.0f);
-					} else {
-						flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
-					}
+					flip.postScale(-1, 1, previewWidth / 2.0f, previewHeight / 2.0f);
 					flip.mapRect(boundingBox);
 				}
 				bounds.add(boundingBox);

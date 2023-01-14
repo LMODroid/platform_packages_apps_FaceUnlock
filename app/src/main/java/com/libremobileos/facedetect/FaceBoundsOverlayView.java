@@ -55,8 +55,8 @@ public class FaceBoundsOverlayView extends View {
 	}
 
 	// please give me RectF's that wont be used otherwise as I modify them
-	public void updateBounds(RectF[] bounds, int sensorWidth, int sensorHeight) {
-		this.bounds = bounds;
+	public void updateBounds(RectF[] inputBounds, int sensorWidth, int sensorHeight) {
+		this.bounds = inputBounds;
 		// if we have no paint yet, make one
 		if (paint == null) {
 			paint = new Paint();
@@ -73,8 +73,8 @@ public class FaceBoundsOverlayView extends View {
 			extraw = 0;
 			extrah = 0;
 			// calculate scaling keeping aspect ratio
-			int newh = (oldw / sensorWidth) * sensorHeight;
-			int neww = (oldh / sensorHeight) * sensorWidth;
+			int newh = (int)((oldw / (float)sensorWidth) * sensorHeight);
+			int neww = (int)((oldh / (float)sensorHeight) * sensorWidth);
 			// calculate out black bars
 			if (neww > oldw) {
 				extrah = (oldh - newh) / 2;
