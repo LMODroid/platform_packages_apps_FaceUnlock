@@ -16,8 +16,6 @@
 
 package com.libremobileos.facedetect;
 
-import static com.libremobileos.yifan.face.FaceScanner.MAXIMUM_DISTANCE_TF_OD_API;
-
 import android.content.res.Configuration;
 import android.graphics.Matrix;
 import android.graphics.RectF;
@@ -29,6 +27,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,14 +43,13 @@ import androidx.camera.view.PreviewView;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.libremobileos.yifan.face.FaceFinder;
-import com.libremobileos.yifan.face.FaceScanner;
-import com.libremobileos.yifan.face.FaceDetector;
+import com.libremobileos.yifan.face.FaceRecognizer;
+import com.libremobileos.yifan.face.FaceStorageBackend;
+import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
+import com.libremobileos.yifan.face.VolatileFaceStorageBackend;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
@@ -61,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
 	// View showing camera frames
 	private PreviewView previewView;
 	// AI-based detector
-	private FaceFinder faceFinder;
+	private FaceRecognizer faceRecognizer;
 	// Simple view allowing us to draw Rectangles over the Preview
 	private FaceBoundsOverlayView overlayView;
 	// The desired camera input size
@@ -70,8 +68,8 @@ public class MainActivity extends AppCompatActivity {
 	private final int selectedCamera = CameraSelector.LENS_FACING_FRONT;
 	// The calculated actual processing width & height
 	private int width, height;
-	// Map of "User visible name" and "Facial features stored as numbers"
-	private final HashMap<String, float[]> knownFaces = new HashMap<>();
+	// Store registered Faces in Memory
+	private FaceStorageBackend faceStorage;
 	// If we are waiting for an face to be added to knownFaces
 	private boolean addPending = false;
 
@@ -133,19 +131,11 @@ public class MainActivity extends AppCompatActivity {
 		imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
 			// Convert CameraX Image to Bitmap and process it
 			// Return list of detected faces
-			List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceFinder.process(BitmapUtils.getBitmap(imageProxy));
+			List<FaceRecognizer.Face> data = faceRecognizer.recognize(BitmapUtils.getBitmap(imageProxy));
 			ArrayList<Pair<RectF, String>> bounds = new ArrayList<>();
 
-			for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : data) {
-				// If you are confused why there are two different Face objects,
-				// FaceDetector alone only finds Faces on an image and gives us
-				// their location. We then crop the image based on the location data
-				// and get facial features as numbers, which are stored in FaceScanner.Face
-
-				FaceDetector.Face found = faceFacePair.first; // The generic Face object indicating where an Face is
-				FaceScanner.Face scanned = faceFacePair.second; // The Face object with face-scanning data
-				RectF boundingBox = new RectF(found.getLocation());
-
+			for (FaceRecognizer.Face face : data) {
+				RectF boundingBox = new RectF(face.getLocation());
 				if (selectedCamera == CameraSelector.LENS_FACING_FRONT) {
 					// Camera is frontal so the image is flipped horizontally,
 					// so flip it again.
@@ -154,8 +144,22 @@ public class MainActivity extends AppCompatActivity {
 					flip.mapRect(boundingBox);
 				}
 
-				// Call onFaceDetected() to generate UI text for face
-				String uiText = onFaceDetected(found, scanned);
+				// Generate UI text for face
+				String uiText;
+				// Do we have any match?
+				if (face.isRecognized()) {
+					// If yes, show the user-visible ID and the detection confidence
+					uiText = face.getTitle() + " " + face.getDistance();
+				} else {
+					// If no, do we want to add a new face?
+					if (addPending) {
+						// If we want to add a new face, show the dialog.
+						runOnUiThread(() -> showAddFaceDialog(face));
+						addPending = false;
+					}
+					// Show detected object type (always "Face") and how confident the AI is that this is an Face
+					uiText = face.getTitle() + " " + face.getConfidence();
+				}
 				bounds.add(new Pair<>(boundingBox, uiText));
 			}
 
@@ -169,39 +173,12 @@ public class MainActivity extends AppCompatActivity {
 		/* Camera camera = */ cameraProvider.bindToLifecycle((LifecycleOwner)this, cameraSelector, imageAnalysis, preview);
 
 		// Create AI-based face detection
-		faceFinder = FaceFinder.create(this, width, height, 0 /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */);
+		//faceStorage = new VolatileFaceStorageBackend();
+		faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
+		faceRecognizer = FaceRecognizer.create(this, faceStorage, width, height, 0 /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */);
 	}
 
-	private String onFaceDetected(FaceDetector.Face found, FaceScanner.Face scanned) {
-		// Go through all saved faces and compare them with our scanned face
-		for (Map.Entry<String, float[]> possible : knownFaces.entrySet()) {
-			float newdistance = scanned.compare(possible.getValue());
-			// If the similarity is really low (not the same face), don't save it
-			// If another known face had better similarity, don't save it
-			if (newdistance < MAXIMUM_DISTANCE_TF_OD_API && newdistance < scanned.getDistance()) {
-				// We have a match! Save "Face identifier" and "Distance to original values"
-				scanned.addRecognitionData(possible.getKey(), newdistance);
-			}
-		}
-		// By now the best match, if any, will be stored in the "scanned" object
-
-		// Do we have any match?
-		if (scanned.isRecognized()) {
-			// If yes, show the user-visible ID and the detection confidence
-			return scanned.getTitle() + " " + scanned.getDistance();
-		} else {
-			// If no, do we want to add a new face?
-			if (addPending) {
-				// If we want to add a new face, show the dialog.
-				runOnUiThread(() -> showAddFaceDialog(scanned));
-				addPending = false;
-			}
-			// Show detected object type (always "Face") and how confident the AI is that this is an Face
-			return found.getTitle() + " " + found.getConfidence();
-		}
-	}
-
-	private void showAddFaceDialog(FaceScanner.Face rec) {
+	private void showAddFaceDialog(FaceRecognizer.Face rec) {
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		LayoutInflater inflater = getLayoutInflater();
 		View dialogLayout = inflater.inflate(R.layout.image_edit_dialog, null);
@@ -220,7 +197,9 @@ public class MainActivity extends AppCompatActivity {
 				return;
 			}
 			// Save facial features in knownFaces
-			knownFaces.put(name, rec.getExtra());
+			if (!faceStorage.register(name, rec.getExtra())) {
+				Toast.makeText(this, R.string.register_failed, Toast.LENGTH_LONG).show();
+			}
 			dlg.dismiss();
 		});
 		builder.setView(dialogLayout);

@@ -63,7 +63,6 @@ import java.util.Locale;
 
     /** Optional location within the source image for the location of the recognized object. */
     private final RectF location;
-    private Integer color;
 
     /* package-private */ Recognition(
             final String id, final String title, final Float distance, final RectF location) {
@@ -71,7 +70,6 @@ import java.util.Locale;
       this.title = title;
       this.distance = distance;
       this.location = location;
-      this.color = null;
       this.extra = null;
     }
 
@@ -80,10 +78,6 @@ import java.util.Locale;
     }
     public float[][] getExtra() {
         return this.extra;
-    }
-
-    public void setColor(Integer color) {
-       this.color = color;
     }
 
     public String getId() {
@@ -124,10 +118,5 @@ import java.util.Locale;
 
       return resultString.trim();
     }
-
-    public Integer getColor() {
-      return this.color;
-    }
-
   }
 }
