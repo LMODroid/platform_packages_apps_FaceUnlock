@@ -1,11 +1,8 @@
-package com.libremobileos.yifan.face.scan;
+package com.libremobileos.yifan.face;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.os.SystemClock;
 import android.util.Pair;
-
-import com.libremobileos.yifan.face.shared.FaceDetector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,10 +29,9 @@ public class FaceFinder {
 		return create(ctx, inputWidth, inputHeight, sensorOrientation, false, true, 4);
 	}
 
-	public Pair<List<Pair<FaceDetector.Face, FaceScanner.Face>> /* detected faces */, Long /* processing time */> process(Bitmap input) {
+	public List<Pair<FaceDetector.Face, FaceScanner.Face>> process(Bitmap input) {
 		FaceDetector.InputImage inputImage = detectorInputProc.process(input);
 
-		final long startTime1 = SystemClock.uptimeMillis();
 		final List<FaceDetector.Face> faces = faceDetector.detectFaces(inputImage);
 		final List<Pair<FaceDetector.Face, FaceScanner.Face>> results = new ArrayList<>();
 
@@ -43,16 +39,20 @@ public class FaceFinder {
 			final FaceScanner.InputImageProcessor scannerInputProc = new FaceScanner.InputImageProcessor(input, sensorOrientation);
 
 			for (FaceDetector.Face face : faces) {
+				if (face == null) continue;
+
 				FaceScanner.InputImage faceBmp = scannerInputProc.process(face.getLocation());
 				if (faceBmp == null) continue;
 
 				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp);
 				if (scanned == null) continue;
 
+				scanned.addData(face.getId(), face.getLocation());
+
 				results.add(new Pair<>(face, scanned));
 			}
 		}
 
-		return new Pair<>(results, /* lastProcessingTimeMs */ SystemClock.uptimeMillis() - startTime1);
+		return results;
 	}
 }

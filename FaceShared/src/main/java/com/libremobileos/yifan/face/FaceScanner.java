@@ -1,4 +1,4 @@
-package com.libremobileos.yifan.face.scan;
+package com.libremobileos.yifan.face;
 
 import android.content.Context;
 import android.content.res.AssetManager;
@@ -10,27 +10,29 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.libremobileos.yifan.face.shared.ImageUtils;
-import com.libremobileos.yifan.face.shared.SimilarityClassifier;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
 public class FaceScanner {
+	// Asset manager to load TFLite model
 	private final AssetManager am;
+	// TFLite Model API
 	private SimilarityClassifier classifier;
+	// Optional settings
 	private final boolean hwAccleration, enhancedHwAccleration;
 	private final int numThreads;
-	// MobileFaceNet
+	// MobileFaceNet model parameters
 	private static final int TF_OD_API_INPUT_SIZE = 112;
 	private static final boolean TF_OD_API_IS_QUANTIZED = false;
 	private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
 	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
 	// Minimum detection confidence to track a detection.
 	public static final float MAXIMUM_DISTANCE_TF_OD_API = 0.8f;
+	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 
+	// Wrapper around Bitmap to avoid user passing unprocessed data
 	public static class InputImage {
 		private final Bitmap processedImage;
 		private final Bitmap userDisplayableImage;
@@ -49,11 +51,13 @@ public class FaceScanner {
 		}
 	}
 
+	// Processes Bitmaps to compatible format
 	public static class InputImageProcessor {
 		private final int sensorOrientation;
 		private final Bitmap portraitBmp;
 		private final Matrix transform;
 
+		// If the class gets instantiated, we enter an special mode of operation for detecting multiple faces on one large Bitmap.
 		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
 			this.sensorOrientation = sensorOrientation;
 			//TODO replace this mess with ImageUtils transform
@@ -66,7 +70,7 @@ public class FaceScanner {
 				targetH = rawImage.getHeight();
 			}
 			Bitmap portraitBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
-			transform = createTransform(
+			transform = ImageUtils.createTransform(
 					rawImage.getWidth(),
 					rawImage.getHeight(),
 					targetW,
@@ -77,6 +81,7 @@ public class FaceScanner {
 			this.portraitBmp = portraitBmp;
 		}
 
+		// In the normal mode of operation, we take a Bitmap with the cropped face and convert it.
 		public static InputImage process(Bitmap input, int sensorOrientation) {
 			Matrix frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
@@ -93,6 +98,7 @@ public class FaceScanner {
 			return process(input, sensorOrientation);
 		}
 
+		// In the special operation mode, we crop the image manually.
 		public InputImage process(RectF inputBB) {
 			RectF faceBB = new RectF(inputBB);
 			transform.mapRect(faceBB);
@@ -105,22 +111,6 @@ public class FaceScanner {
 					(int) faceBB.width(),
 					(int) faceBB.height()));
 		}
-
-		private static Matrix createTransform( //should be removed while reworking portraitBmp creation
-		                                       final int srcWidth,
-		                                       final int srcHeight,
-		                                       final int dstWidth,
-		                                       final int dstHeight,
-		                                       final int applyRotation) {
-			Matrix matrix = new Matrix();
-			if (applyRotation != 0) {
-				matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
-				matrix.postRotate(applyRotation);
-				matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
-			}
-			return matrix;
-		}
-
 	}
 
 	/** An immutable result returned by a FaceDetector describing what was recognized. */
@@ -129,27 +119,27 @@ public class FaceScanner {
 		 * A unique identifier for what has been recognized. Specific to the class, not the instance of
 		 * the object.
 		 */
-		private final String id;
+		private String id;
 
 		/** Display name for the recognition. */
-		private final String title;
+		private String title;
 
 		/**
 		 * A sortable score for how good the recognition is relative to others. Lower should be better.
 		 */
-		private final Float distance;
+		private Float distance;
 
 		/** Optional location within the source image for the location of the recognized object. */
-		private final RectF location;
+		private RectF location;
 
 		/** Optional, source bitmap */
 		private final Bitmap crop;
 
 		/** Optional, raw AI output */
-		private final float[][] extra;
+		private final float[] extra;
 
 		public Face(
-				final String id, final String title, final Float distance, final RectF location, final Bitmap crop, final float[][] extra) {
+				final String id, final String title, final Float distance, final RectF location, final Bitmap crop, final float[] extra) {
 			this.id = id;
 			this.title = title;
 			this.distance = distance;
@@ -179,8 +169,25 @@ public class FaceScanner {
 			return Bitmap.createBitmap(crop);
 		}
 
-		public float[][] getExtra() {
+		public float[] getExtra() {
 			return extra;
+		}
+
+		// add metadata from FaceDetector
+		/* package-private */ void addData(String id, RectF location) {
+			this.id = id;
+			this.location = location;
+		}
+
+		// add metadata obtainable after face recognition
+		public void addRecognitionData(String title, float distance) {
+			this.title = title;
+			this.distance = distance;
+		}
+
+		// if this Face has been recognized
+		public boolean isRecognized() {
+			return getDistance() < Float.MAX_VALUE;
 		}
 
 		@NonNull
@@ -206,9 +213,9 @@ public class FaceScanner {
 			return resultString.trim();
 		}
 
-		public float compare(float[][] other) {
-			final float[] emb = normalizeFloat(extra[0]);
-			final float[] knownEmb = normalizeFloat(other[0]);
+		public float compare(float[] other) {
+			final float[] emb = normalizeFloat(extra);
+			final float[] knownEmb = normalizeFloat(other);
 			float distance = 0;
 			for (int i = 0; i < emb.length; i++) {
 				float diff = emb[i] - knownEmb[i];
@@ -247,7 +254,7 @@ public class FaceScanner {
 		return create(context, false, true, 4);
 	}
 
-	public FaceScanner(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+	private FaceScanner(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
 		this.am = am;
 		this.hwAccleration = hwAccleration;
 		this.enhancedHwAccleration = enhancedHwAccleration;
@@ -273,7 +280,7 @@ public class FaceScanner {
 		try {
 			List<SimilarityClassifier.Recognition> results = getClassifier().recognizeImage(input.getProcessedImage());
 			SimilarityClassifier.Recognition result = results.get(0);
-			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, input.getUserDisplayableImage(), result.getExtra());
+			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, input.getUserDisplayableImage(), result.getExtra()[0]);
 		} catch (IOException e) {
 			Log.e("FaceScanner", Log.getStackTraceString(e));
 			return null;

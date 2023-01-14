@@ -1,4 +1,4 @@
-package com.libremobileos.yifan.face.shared;
+package com.libremobileos.yifan.face;
 
 import android.content.Context;
 import android.content.res.AssetManager;
@@ -10,26 +10,30 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import com.libremobileos.yifan.face.scan.FaceScanner;
-
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
 public class FaceDetector {
+	// Asset manager to load TFLite model
 	private final AssetManager am;
+	// TFLite Model API
 	private SimilarityClassifier classifier;
+	// Optional settings
 	private final boolean hwAccleration, enhancedHwAccleration;
 	private final int numThreads;
-	// Face Detect
+	// Face Detection model parameters
 	private static final int TF_FD_API_INPUT_SIZE = 300;
 	private static final boolean TF_FD_API_IS_QUANTIZED = true;
 	private static final String TF_FD_API_MODEL_FILE = "detect-class1.tflite";
 	private static final String TF_FD_API_LABELS_FILE = "file:///android_asset/detect-class1.txt";
+	// Minimum detection confidence to track a detection.
 	private static final float MINIMUM_CONFIDENCE_TF_FD_API = 0.6f;
+	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 
+	// Wrapper around Bitmap to avoid user passing unprocessed data
 	public static class InputImage {
 		private final Bitmap processedImage;
 		private final Matrix cropToFrameTransform;
@@ -48,6 +52,7 @@ public class FaceDetector {
 		}
 	}
 
+	// Processes Bitmaps to compatible format
 	public static class InputImageProcessor {
 		private final Matrix frameToCropTransform;
 		private final Matrix cropToFrameTransform = new Matrix();
@@ -146,7 +151,7 @@ public class FaceDetector {
 		return create(context, false, true, 4);
 	}
 
-	public FaceDetector(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+	private FaceDetector(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
 		this.am = am;
 		this.hwAccleration = hwAccleration;
 		this.enhancedHwAccleration = enhancedHwAccleration;

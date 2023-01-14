@@ -1,19 +1,21 @@
-/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/**
+ * Copyright 2019 The TensorFlow Authors
+ * Copyright 2023 LibreMobileOS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
-
-package com.libremobileos.yifan.face.shared;
+package com.libremobileos.yifan.face;
 
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
@@ -26,9 +28,9 @@ import java.util.List;
 import java.util.Locale;
 
 /** Generic interface for interacting with different recognition engines. */
-public abstract class SimilarityClassifier {
+/* package-private */ abstract class SimilarityClassifier {
 
-  public static SimilarityClassifier create(
+  /* package-private */ static SimilarityClassifier create(
           final AssetManager assetManager,
           final String modelFilename,
           final String labelFilename,
@@ -40,10 +42,10 @@ public abstract class SimilarityClassifier {
     return TFLiteObjectDetectionAPIModel.create(assetManager, modelFilename, labelFilename, inputSize, isQuantized, hwAccleration, useEnhancedAccleration, numThreads);
   }
 
-  public abstract List<Recognition> recognizeImage(Bitmap bitmap);
+  /* package-private */ abstract List<Recognition> recognizeImage(Bitmap bitmap);
 
   /** An immutable result returned by a Classifier describing what was recognized. */
-  public static class Recognition {
+  /* package-private */ static class Recognition {
     /**
      * A unique identifier for what has been recognized. Specific to the class, not the instance of
      * the object.
@@ -60,11 +62,10 @@ public abstract class SimilarityClassifier {
     private float[][] extra;
 
     /** Optional location within the source image for the location of the recognized object. */
-    private RectF location;
+    private final RectF location;
     private Integer color;
-    private Bitmap crop;
 
-    public Recognition(
+    /* package-private */ Recognition(
             final String id, final String title, final Float distance, final RectF location) {
       this.id = id;
       this.title = title;
@@ -72,7 +73,6 @@ public abstract class SimilarityClassifier {
       this.location = location;
       this.color = null;
       this.extra = null;
-      this.crop = null;
     }
 
     public void setExtra(float[][] extra) {
@@ -102,10 +102,6 @@ public abstract class SimilarityClassifier {
       return new RectF(location);
     }
 
-    public void setLocation(RectF location) {
-      this.location = location;
-    }
-
     @NonNull
     @Override
     public String toString() {
@@ -131,14 +127,6 @@ public abstract class SimilarityClassifier {
 
     public Integer getColor() {
       return this.color;
-    }
-
-    public void setCrop(Bitmap crop) {
-      this.crop = crop;
-    }
-
-    public Bitmap getCrop() {
-      return this.crop;
     }
 
   }

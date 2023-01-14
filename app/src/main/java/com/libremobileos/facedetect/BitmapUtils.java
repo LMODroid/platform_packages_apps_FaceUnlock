@@ -1,6 +1,4 @@
-package com.libremobileos.facedetect;
-
-/*
+/**
  * Copyright 2020 Google LLC. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +13,12 @@ package com.libremobileos.facedetect;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * File imported without required modifications, only fixing IDE warnings.
  * Source: https://github.com/googlesamples/mlkit/blob/d10c447f8259b59262582c30c1608cdf38f4e4a0/android/vision-quickstart/app/src/main/java/com/google/mlkit/vision/demo/BitmapUtils.java
  */
 
-import android.content.ContentResolver;
+package com.libremobileos.facedetect;
+
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
@@ -27,24 +27,17 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
 import android.media.Image.Plane;
-import android.net.Uri;
-import android.os.Build.VERSION_CODES;
-import android.provider.MediaStore;
 import android.util.Log;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageProxy;
-import androidx.exifinterface.media.ExifInterface;
+
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /** Utils functions for bitmap conversions. */
 public class BitmapUtils {
-	private static final String TAG = "BitmapUtils";
-
 	/** Describing a frame info. */
 	public static class FrameMetadata {
 
@@ -114,7 +107,7 @@ public class BitmapUtils {
 			Bitmap bmp = BitmapFactory.decodeByteArray(stream.toByteArray(), 0, stream.size());
 
 			stream.close();
-			return rotateBitmap(bmp, metadata.getRotation(), false, false);
+			return rotateBitmap(bmp, metadata.getRotation());
 		} catch (Exception e) {
 			Log.e("VisionProcessorBase", "Error: " + e.getMessage());
 		}
@@ -133,20 +126,18 @@ public class BitmapUtils {
 						.build();
 
 		ByteBuffer nv21Buffer =
-				yuv420ThreePlanesToNV21(image.getImage().getPlanes(), image.getWidth(), image.getHeight());
+				yuv420ThreePlanesToNV21(Objects.requireNonNull(image.getImage()).getPlanes(), image.getWidth(), image.getHeight());
 		return getBitmap(nv21Buffer, frameMetadata);
 	}
 
 	/** Rotates a bitmap if it is converted from a bytebuffer. */
 	private static Bitmap rotateBitmap(
-			Bitmap bitmap, int rotationDegrees, boolean flipX, boolean flipY) {
+			Bitmap bitmap, int rotationDegrees) {
 		Matrix matrix = new Matrix();
 
 		// Rotate the image back to straight.
 		matrix.postRotate(rotationDegrees);
 
-		// Mirror the image along the X or Y axis.
-		matrix.postScale(flipX ? -1.0f : 1.0f, flipY ? -1.0f : 1.0f);
 		Bitmap rotatedBitmap =
 				Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 
@@ -155,77 +146,6 @@ public class BitmapUtils {
 			bitmap.recycle();
 		}
 		return rotatedBitmap;
-	}
-
-	@Nullable
-	public static Bitmap getBitmapFromContentUri(ContentResolver contentResolver, Uri imageUri)
-			throws IOException {
-		Bitmap decodedBitmap = MediaStore.Images.Media.getBitmap(contentResolver, imageUri);
-		if (decodedBitmap == null) {
-			return null;
-		}
-		int orientation = getExifOrientationTag(contentResolver, imageUri);
-
-		int rotationDegrees = 0;
-		boolean flipX = false;
-		boolean flipY = false;
-		// See e.g. https://magnushoff.com/articles/jpeg-orientation/ for a detailed explanation on each
-		// orientation.
-		switch (orientation) {
-			case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
-				flipX = true;
-				break;
-			case ExifInterface.ORIENTATION_ROTATE_90:
-				rotationDegrees = 90;
-				break;
-			case ExifInterface.ORIENTATION_TRANSPOSE:
-				rotationDegrees = 90;
-				flipX = true;
-				break;
-			case ExifInterface.ORIENTATION_ROTATE_180:
-				rotationDegrees = 180;
-				break;
-			case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-				flipY = true;
-				break;
-			case ExifInterface.ORIENTATION_ROTATE_270:
-				rotationDegrees = -90;
-				break;
-			case ExifInterface.ORIENTATION_TRANSVERSE:
-				rotationDegrees = -90;
-				flipX = true;
-				break;
-			case ExifInterface.ORIENTATION_UNDEFINED:
-			case ExifInterface.ORIENTATION_NORMAL:
-			default:
-				// No transformations necessary in this case.
-		}
-
-		return rotateBitmap(decodedBitmap, rotationDegrees, flipX, flipY);
-	}
-
-	private static int getExifOrientationTag(ContentResolver resolver, Uri imageUri) {
-		// We only support parsing EXIF orientation tag from local file on the device.
-		// See also:
-		// https://android-developers.googleblog.com/2016/12/introducing-the-exifinterface-support-library.html
-		if (!ContentResolver.SCHEME_CONTENT.equals(imageUri.getScheme())
-				&& !ContentResolver.SCHEME_FILE.equals(imageUri.getScheme())) {
-			return 0;
-		}
-
-		ExifInterface exif;
-		try (InputStream inputStream = resolver.openInputStream(imageUri)) {
-			if (inputStream == null) {
-				return 0;
-			}
-
-			exif = new ExifInterface(inputStream);
-		} catch (IOException e) {
-			Log.e(TAG, "failed to open file to read rotation meta data: " + imageUri, e);
-			return 0;
-		}
-
-		return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
 	}
 
 	/**
