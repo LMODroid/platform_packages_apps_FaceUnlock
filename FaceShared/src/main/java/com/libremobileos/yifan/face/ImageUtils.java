@@ -80,20 +80,4 @@ public class ImageUtils {
 
     return matrix;
   }
-
-  // Lightweight alternative to getTransformationMatrix
-  public static Matrix createTransform(
-                                         final int srcWidth,
-                                         final int srcHeight,
-                                         final int dstWidth,
-                                         final int dstHeight,
-                                         final int applyRotation) {
-    Matrix matrix = new Matrix();
-    if (applyRotation != 0) {
-      matrix.postTranslate(-srcWidth / 2.0f, -srcHeight / 2.0f);
-      matrix.postRotate(applyRotation);
-      matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
-    }
-    return matrix;
-  }
 }

@@ -31,7 +31,7 @@ import java.util.Set;
 public class FaceRecognizer {
 	private final FaceStorageBackend storage;
 	private final FaceFinder detector;
-	private final int MINIMUM_MATCHING_MODELS_TF_OD_API = 2;
+	private final int MINIMUM_MATCHING_MODELS_TF_OD_API = 1;
 
 	private FaceRecognizer(Context ctx, FaceStorageBackend storage, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
 		this.storage = storage;

@@ -77,22 +77,16 @@ public class FaceScanner {
 		// If the class gets instantiated, we enter an special mode of operation for detecting multiple faces on one large Bitmap.
 		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
 			this.sensorOrientation = sensorOrientation;
-			//TODO replace this mess with ImageUtils transform
-			int targetW, targetH;
-			if (sensorOrientation == 90 || sensorOrientation == 270) {
-				targetH = rawImage.getWidth();
-				targetW = rawImage.getHeight();
-			} else {
-				targetW = rawImage.getWidth();
-				targetH = rawImage.getHeight();
-			}
-			Bitmap portraitBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
-			transform = ImageUtils.createTransform(
+			Bitmap portraitBmp = Bitmap.createBitmap(
+					(sensorOrientation % 180) == 90 ? rawImage.getHeight() : rawImage.getWidth(),
+					(sensorOrientation % 180) == 90 ? rawImage.getWidth() : rawImage.getHeight(), Bitmap.Config.ARGB_8888);
+			transform = ImageUtils.getTransformationMatrix(
 					rawImage.getWidth(),
 					rawImage.getHeight(),
-					targetW,
-					targetH,
-					sensorOrientation);
+					rawImage.getWidth(),
+					rawImage.getHeight(),
+					sensorOrientation,
+					MAINTAIN_ASPECT);
 			final Canvas cv = new Canvas(portraitBmp);
 			cv.drawBitmap(rawImage, transform, null);
 			this.portraitBmp = portraitBmp;
