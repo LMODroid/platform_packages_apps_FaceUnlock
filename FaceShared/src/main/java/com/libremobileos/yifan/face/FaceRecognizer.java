@@ -92,7 +92,7 @@ public class FaceRecognizer {
 	}
 
 	/**
-	 * Create {@link FaceRecognizer} instance, with minimum matching model constraint. Has sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * Create {@link FaceRecognizer} instance, with minimum matching model constraint and sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
 	 * @param ctx Android {@link Context} object, may be in background.
 	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
 	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
@@ -111,7 +111,7 @@ public class FaceRecognizer {
 	}
 
 	/**
-	 * Create {@link FaceRecognizer} instance, with matching model ratio constraint. Has sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * Create {@link FaceRecognizer} instance, with matching model ratio constraint and sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
 	 * @param ctx Android {@link Context} object, may be in background.
 	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
 	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
@@ -136,30 +136,32 @@ public class FaceRecognizer {
 		private final int modelCount;
 		private final float modelRatio;
 
-		public Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio) {
+		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio) {
 			super(id, title, distance, location, crop, extra);
 			this.confidence = confidence;
 			this.modelRatio = modelRatio;
 			this.modelCount = modelCount;
 		}
 
-		public Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio) {
+		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio) {
 			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio);
 		}
 
-		public Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio) {
+		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio) {
 			this(original, raw.getConfidence(), modelCount, modelRatio);
 		}
 
 		/**
-		 * @return A sortable score for how good the detection (NOT recognition, that's {@link #getDistance()}) is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 * A score for how good the detection (NOT recognition, that's {@link #getDistance()}) is relative to others.
+		 * @return Sortable score, higher is better. Min: 0f Max: 1.0f
 		 */
-		public float getConfidence() {
+		public float getDetectionConfidence() {
 			return confidence;
 		}
 
 		/**
-		 * @return How many models detected the face.
+		 * How many models detected the face.
+		 * @return Model count
 		 */
 		public int getModelCount() {
 			return modelCount;
@@ -186,7 +188,7 @@ public class FaceRecognizer {
 		final List<Face> results = new ArrayList<>();
 
 		for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : faces) {
-			FaceDetector.Face found = faceFacePair.first; // The generic Face object indicating where an Face is
+			FaceDetector.Face found = faceFacePair.first; // The generic Face object indicating where a Face is
 			FaceScanner.Face scanned = faceFacePair.second; // The Face object with face-scanning data
 			// Go through all saved faces and compare them with our scanned face
 			int matchingModelsOut = 0;

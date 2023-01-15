@@ -27,7 +27,7 @@ import java.util.List;
  * Combination of {@link FaceDetector} and {@link FaceScanner}
  * for workloads where both face detection and face scanning are required.
  * However, this class makes no assumptions about the workload and is therefore bare-bones.
- * Because of this, usage of an task-specific class like {@link FaceRecognizer}
+ * Because of this, usage of a task-specific class like {@link FaceRecognizer}
  * is highly recommended, unless these do not fit your use case.
  */
 public class FaceFinder {
@@ -76,7 +76,7 @@ public class FaceFinder {
 	}
 
 	/**
-	 * Process an Bitmap using {@link FaceDetector},
+	 * Process a Bitmap using {@link FaceDetector},
 	 * scanning the resulting found faces using {@link FaceScanner} after manually cropping the image.
 	 * Adds extra metadata (location) to {@link FaceScanner.Face} based on best effort basis.
 	 * @param input Bitmap to process.

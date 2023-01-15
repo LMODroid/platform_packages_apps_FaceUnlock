@@ -132,13 +132,17 @@ public class FaceDetector {
 		}
 
 		/**
-		 * @return A sortable score for how good the recognition is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 * A score for how good the detection is relative to others.
+		 * @return Sortable score, higher is better. Min: 0f Max: 1.0f
 		 */
 		public Float getConfidence() {
 			return confidence;
 		}
 
-		/** @return Optional location within the source image for the location of the recognized object. */
+		/**
+		 * Optional location within the source image for the location of the recognized object.
+		 * @return {@link RectF} containing location on input image
+		 */
 		public RectF getLocation() {
 			return new RectF(location);
 		}

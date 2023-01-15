@@ -19,6 +19,8 @@ package com.libremobileos.yifan.face;
 import android.graphics.Matrix;
 
 public class ImageUtils {
+  private ImageUtils() {}
+
   /**
    * Returns a transformation matrix from one reference frame into another.
    * Handles cropping (if maintaining aspect ratio is desired) and rotation.

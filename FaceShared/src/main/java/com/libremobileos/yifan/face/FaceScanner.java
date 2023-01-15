@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Raw wrapper around AI model that scans ONE Face inside an perfectly cropped Bitmap and returns facial features.
+ * Raw wrapper around AI model that scans ONE Face inside a perfectly cropped Bitmap and returns facial features.
  * Most likely, specialized classes like {@link FaceRecognizer} or {@link FaceFinder}
  * fit your use case better.
  */
@@ -88,7 +88,7 @@ public class FaceScanner {
 		private final Matrix transform;
 
 		/**
-		 * If the class gets instantiated, we enter an special mode of operation for detecting multiple faces on one large {@link Bitmap}.
+		 * If the class gets instantiated, we enter a special mode of operation for detecting multiple faces on one large {@link Bitmap}.
 		 * @param rawImage The image with all faces to be detected
 		 * @param sensorOrientation rotation if the image should be rotated, or 0.
 		 */
@@ -138,7 +138,11 @@ public class FaceScanner {
 			return process(input, sensorOrientation);
 		}
 
-		// In the special operation mode, we crop the image manually.
+		/**
+		 * In special mode of operation, we crop the image to detect multiple faces on one large {@link Bitmap} (in multiple passes).
+		 * @param inputBB {@link RectF} containing location of face cropped out next
+		 * @return Converted {@link InputImage}
+		 */
 		public InputImage process(RectF inputBB) {
 			RectF faceBB = new RectF(inputBB);
 			transform.mapRect(faceBB);
@@ -155,30 +159,21 @@ public class FaceScanner {
 
 	/** An immutable result returned by a FaceDetector describing what was recognized. */
 	public static class Face {
-		/**
-		 * A unique identifier for what has been recognized. Specific to the class, not the instance of
-		 * the object.
-		 */
+		// A unique identifier for what has been recognized. Specific to the class, not the instance of
+		// the object.
 		private String id;
 
-		/** Display name for the recognition. */
 		private String title;
 
-		/**
-		 * A sortable score for how good the recognition is relative to others. Lower should be better.
-		 */
 		private Float distance;
 
-		/** Optional location within the source image for the location of the recognized object. */
 		private RectF location;
 
-		/** Optional, source bitmap */
 		private final Bitmap crop;
 
-		/** Optional, raw AI output */
 		private final float[] extra;
 
-		public Face(
+		/* package-private */ Face(
 				final String id, final String title, final Float distance, final RectF location, final Bitmap crop, final float[] extra) {
 			this.id = id;
 			this.title = title;
@@ -188,27 +183,47 @@ public class FaceScanner {
 			this.extra = extra;
 		}
 
-		public String getId() {
+		/* package-private */ String getId() {
 			return id;
 		}
 
+		/**
+		 * Display name for the recognition.
+		 * @return Title as {@link String}
+		 */
 		public String getTitle() {
 			return title;
 		}
 
+		/**
+		 * A score for how good the recognition is relative to others.
+		 * @return Sortable score. Lower is better.
+		 */
 		public Float getDistance() {
 			return distance;
 		}
 
+		/**
+		 * Optional location within the source image for the location of the recognized object.
+		 * @return {@link RectF} containing location on input image
+		 */
 		public RectF getLocation() {
 			return new RectF(location);
 		}
 
+		/**
+		 * Optional, source bitmap
+		 * @return User-displayable {@link Bitmap} containing the cropped face
+		 */
 		public Bitmap getCrop() {
 			if (crop == null) return null;
 			return Bitmap.createBitmap(crop);
 		}
 
+		/**
+		 * Optional, raw AI output
+		 * @return Facial features encoded in float[]
+		 */
 		public float[] getExtra() {
 			return extra;
 		}
@@ -219,13 +234,20 @@ public class FaceScanner {
 			this.location = location;
 		}
 
-		// add metadata obtainable after face recognition
+		/**
+		 * Add metadata obtainable after face recognition.
+		 * @param title The new title (name) to store.
+		 * @param distance The new distance to store.
+		 */
 		public void addRecognitionData(String title, float distance) {
 			this.title = title;
 			this.distance = distance;
 		}
 
-		// if this Face has been recognized
+		/**
+		 * Test if the face has already been recognized (if {@link #addRecognitionData(String, float)} has been called)
+		 * @return equivalent of <code>getDistance() < Float.MAX_VALUE</code>
+		 */
 		public boolean isRecognized() {
 			return getDistance() < Float.MAX_VALUE;
 		}

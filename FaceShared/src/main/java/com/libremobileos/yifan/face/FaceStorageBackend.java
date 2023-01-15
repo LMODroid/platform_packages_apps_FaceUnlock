@@ -37,14 +37,15 @@ import java.util.stream.Collectors;
 public abstract class FaceStorageBackend {
 	private final Base64.Encoder encoder = Base64.getUrlEncoder();
 	private final Base64.Decoder decoder = Base64.getUrlDecoder();
-	protected Set<String> cachedNames = null;
-	protected HashMap<String, float[][]> cachedData = null;
+	/* package-private */ Set<String> cachedNames = null;
+	/* package-private */ HashMap<String, float[][]> cachedData = null;
 
 	public FaceStorageBackend() {
 		flushCache();
 	}
 
 	/**
+	 * Get all known faces
 	 * @return {@link Set} of all known faces (names only)
 	 */
 	public Set<String> getNames() {
@@ -109,7 +110,7 @@ public abstract class FaceStorageBackend {
 	/**
 	 * Adds 1D face model to existing 2D face model to improve accuracy.
 	 * @param rawname Name of the face, needs to be unique.
-	 * @param alldata 1D face detection model data to sto
+	 * @param alldata 1D face detection model data to store
 	 * @param add If the face doesn't already exist, can we create it?
 	 * @return If registering was successful.
 	 */
@@ -158,18 +159,39 @@ public abstract class FaceStorageBackend {
 		return deleteInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8)));
 	}
 
+	/**
+	 * Get all known faces
+	 * @return {@link Set} of all known faces (names only)
+	 */
 	protected abstract Set<String> getNamesInternal();
+	/**
+	 * Register/store new face.
+	 * @param name Name of the face, needs to be unique.
+	 * @param data Face detection model data to store.
+	 * @param duplicate Only true if we are adding a duplicate and want to replace the saved one.
+	 * @return If registering was successful.
+	 */
 	protected abstract boolean registerInternal(String name, String data, boolean duplicate);
+	/**
+	 * Load 2D face model from storage.
+	 * @param name The name of the face to load.
+	 * @return The face model.
+	 */
 	protected abstract String getInternal(String name);
+	/**
+	 * Delete all references to a face.
+	 * @param name The face to delete.
+	 * @return If deletion was successful.
+	 */
 	protected abstract boolean deleteInternal(String name);
 
-	protected @Nullable Set<String> getNamesCached() {
+	/* package-private */ @Nullable Set<String> getNamesCached() {
 		return cachedNames;
 	}
-	protected @Nullable float[][] getCached(String name) {
+	/* package-private */ @Nullable float[][] getCached(String name) {
 		return cachedData.get(name);
 	}
-	protected void flushCache() {
+	private void flushCache() {
 		cachedNames = null;
 		cachedData = new HashMap<>();
 	}

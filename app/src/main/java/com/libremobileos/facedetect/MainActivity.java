@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
 	private int width, height;
 	// Store registered Faces in Memory
 	private FaceStorageBackend faceStorage;
-	// If we are waiting for an face to be added to knownFaces
+	// If we are waiting for a face to be added to knownFaces
 	private boolean addPending = false;
 
 	@Override
@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
 		preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
 		// Cameras give us landscape images. If we are in portrait mode
-		// (and want to process an portrait image), swap width/height to
+		// (and want to process a portrait image), swap width/height to
 		// make the image portrait.
 		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
 			width = desiredInputSize.getHeight();
@@ -154,8 +154,8 @@ public class MainActivity extends AppCompatActivity {
 					// If yes, show the user-visible ID and the detection confidence
 					uiText = face.getModelCount() + " " + face.getTitle() + " " + face.getDistance();
 				} else {
-					// Show detected object type (always "Face") and how confident the AI is that this is an Face
-					uiText = face.getTitle() + " " + face.getConfidence();
+					// Show detected object type (always "Face") and how confident the AI is that this is a Face
+					uiText = face.getTitle() + " " + face.getDetectionConfidence();
 				}
 				bounds.add(new Pair<>(boundingBox, uiText));
 			}
