@@ -32,7 +32,7 @@ public class EnrollActivity extends AppCompatActivity {
 			return;
 		}
 		findViewById(R.id.button2).setVisibility(View.GONE);
-		f.findViewById(R.id.button).setOnClickListener(v -> {
+		findViewById(R.id.button).setOnClickListener(v -> {
 			startActivity(new Intent(this, MainActivity.class));
 			finish();
 		});
