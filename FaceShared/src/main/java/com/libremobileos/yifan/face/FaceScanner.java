@@ -246,7 +246,7 @@ public class FaceScanner {
 
 		/**
 		 * Test if the face has already been recognized (if {@link #addRecognitionData(String, float)} has been called)
-		 * @return equivalent of <code>getDistance() < Float.MAX_VALUE</code>
+		 * @return equivalent of {@code getDistance() < Float.MAX_VALUE}
 		 */
 		public boolean isRecognized() {
 			return getDistance() < Float.MAX_VALUE;
