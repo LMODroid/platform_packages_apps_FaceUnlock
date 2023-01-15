@@ -18,6 +18,8 @@ package com.libremobileos.yifan.face;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.RectF;
 import android.util.Pair;
 
@@ -39,12 +41,15 @@ public class FaceRecognizer {
 	// Minimum count of matching detection models. (ratio)
 	private final float minModelRatio;
 
+	private final float[][] brightnessTest;
+
 	private FaceRecognizer(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, int minMatchingModels, float minModelRatio, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
 		this.storage = storage;
 		this.detector = FaceFinder.create(ctx, minConfidence, inputWidth, inputHeight, sensorOrientation, hwAcceleration, enhancedHwAcceleration, numThreads);
 		this.maxDistance = maxDistance;
 		this.minMatchingModels = minMatchingModels;
 		this.minModelRatio = minModelRatio;
+		this.brightnessTest = new float[][] { detector.faceScanner.brightnessTest(Color.WHITE), detector.faceScanner.brightnessTest(Color.BLACK) };
 	}
 
 	/**
@@ -135,20 +140,24 @@ public class FaceRecognizer {
 		private final float confidence;
 		private final int modelCount;
 		private final float modelRatio;
+		/* package-private */ final float brightnessTest1;
+		/* package-private */ final float brightnessTest2;
 
-		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio) {
+		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
 			super(id, title, distance, location, crop, extra);
 			this.confidence = confidence;
 			this.modelRatio = modelRatio;
 			this.modelCount = modelCount;
+			this.brightnessTest1 = brightnessTest1;
+			this.brightnessTest2 = brightnessTest2;
 		}
 
-		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio) {
-			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio);
+		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
+			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio, brightnessTest1, brightnessTest2);
 		}
 
-		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio) {
-			this(original, raw.getConfidence(), modelCount, modelRatio);
+		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
+			this(original, raw.getConfidence(), modelCount, modelRatio, brightnessTest1, brightnessTest2);
 		}
 
 		/**
@@ -174,6 +183,16 @@ public class FaceRecognizer {
 		@SuppressWarnings("unused")
 		public float getModelRatio() {
 			return modelRatio;
+		}
+
+		/**
+		 * Get hints on brightness (light situation) of face.
+		 * @return -1 = really bad, 0 = suboptimal, 1 = optimal
+		 */
+		public int getBrightnessHint() {
+			return (brightnessTest1 < 0.5f || brightnessTest2 < 0.4f) ? -1 : // really bad light
+					(brightnessTest1 + brightnessTest2 < 2.0f ? 0 // suboptimal
+							: 1); // optimal
 		}
 	}
 
@@ -218,7 +237,7 @@ public class FaceRecognizer {
 				}
 			}
 
-			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut));
+			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut, scanned.compare(brightnessTest[0]), scanned.compare(brightnessTest[1])));
 		}
 		return results;
 	}

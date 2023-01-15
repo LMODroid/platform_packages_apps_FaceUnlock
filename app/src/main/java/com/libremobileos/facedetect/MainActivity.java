@@ -16,6 +16,7 @@
 
 package com.libremobileos.facedetect;
 
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Matrix;
 import android.graphics.RectF;
@@ -50,82 +51,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-public class MainActivity extends AppCompatActivity {
-
-	// CameraX boilerplate
-	private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-	// View showing camera frames
-	private PreviewView previewView;
+public class MainActivity extends CameraActivity {
 	// AI-based detector
 	private FaceRecognizer faceRecognizer;
 	// Simple view allowing us to draw Rectangles over the Preview
 	private FaceBoundsOverlayView overlayView;
-	// The desired camera input size
-	private final Size desiredInputSize = new Size(640, 480);
-	// The calculated actual processing width & height
-	private int width, height;
-	// Store registered Faces in Memory
-	private FaceStorageBackend faceStorage;
-	// If we are waiting for a face to be added to knownFaces
-	private boolean addPending = false;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		// Initialize basic views
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		previewView = findViewById(R.id.viewFinder);
-		previewView.setScaleType(PreviewView.ScaleType.FIT_CENTER);
+		connectToCam(findViewById(R.id.viewFinder));
+
 		overlayView = findViewById(R.id.overlay);
-		overlayView.setOnClickListener(v -> addPending = true);
-		setTitle(getString(R.string.tap_to_add_face));
-
-		// CameraX boilerplate (create camera connection)
-		cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-		cameraProviderFuture.addListener(() -> {
-			try {
-				ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-				bindPreview(cameraProvider);
-			} catch (ExecutionException | InterruptedException e) {
-				// No errors need to be handled for this Future.
-				// This should never be reached.
-			}
-		}, getMainExecutor());
-
+		overlayView.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
 	}
 
 	@OptIn(markerClass = ExperimentalGetImage.class)
-	private void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
-		// We're connected to the camera, set up everything
-		Preview preview = new Preview.Builder()
-				.build();
-
-		// Which camera to use
-		int selectedCamera = CameraSelector.LENS_FACING_FRONT;
-		CameraSelector cameraSelector = new CameraSelector.Builder()
-				.requireLensFacing(selectedCamera)
-				.build();
-
-		preview.setSurfaceProvider(previewView.getSurfaceProvider());
-
-		// Cameras give us landscape images. If we are in portrait mode
-		// (and want to process a portrait image), swap width/height to
-		// make the image portrait.
-		if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-			width = desiredInputSize.getHeight();
-			height = desiredInputSize.getWidth();
-		} else {
-			width = desiredInputSize.getWidth();
-			height = desiredInputSize.getHeight();
-		}
-
-		// Set up CameraX boilerplate and configure it to drop frames if we can't keep up
-		ImageAnalysis imageAnalysis =
-				new ImageAnalysis.Builder()
-						.setTargetResolution(new Size(width, height))
-						.setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-						.build();
-
+	@Override
+	protected void onSetCameraCallback(ImageAnalysis imageAnalysis) {
 		imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
 			// Convert CameraX Image to Bitmap and process it
 			// Return list of detected faces
@@ -143,12 +88,6 @@ public class MainActivity extends AppCompatActivity {
 
 				// Generate UI text for face
 				String uiText;
-				// Do we want to add a new face?
-				if (addPending) {
-					// If we want to add a new face, show the dialog.
-					runOnUiThread(() -> showAddFaceDialog(face));
-					addPending = false;
-				}
 				// Do we have any match?
 				if (face.isRecognized()) {
 					// If yes, show the user-visible ID and the detection confidence
@@ -166,12 +105,11 @@ public class MainActivity extends AppCompatActivity {
 			imageProxy.close();
 		});
 
-		// Bind all objects together
-		/* Camera camera = */ cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview);
+		// Store registered Faces in Memory
+		//faceStorage = new VolatileFaceStorageBackend();
+		FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
 
 		// Create AI-based face detection
-		//faceStorage = new VolatileFaceStorageBackend();
-		faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
 		faceRecognizer = FaceRecognizer.create(this,
 				faceStorage, /* face data storage */
 				0.6f, /* minimum confidence to consider object as face */
@@ -181,34 +119,6 @@ public class MainActivity extends AppCompatActivity {
 				0.7f, /* maximum distance to track face */
 				1 /* minimum model count to track face */
 		);
-	}
-
-	private void showAddFaceDialog(FaceRecognizer.Face rec) {
-		AlertDialog.Builder builder = new AlertDialog.Builder(this);
-		LayoutInflater inflater = getLayoutInflater();
-		View dialogLayout = inflater.inflate(R.layout.image_edit_dialog, null);
-		ImageView ivFace = dialogLayout.findViewById(R.id.dlg_image);
-		TextView tvTitle = dialogLayout.findViewById(R.id.dlg_title);
-		EditText etName = dialogLayout.findViewById(R.id.dlg_input);
-
-		tvTitle.setText(R.string.add_face);
-		// Add preview of cropped face to verify we're adding the correct one
-		ivFace.setImageBitmap(rec.getCrop());
-		etName.setHint(R.string.input_name);
-
-		builder.setPositiveButton(R.string.ok, (dlg, i) -> {
-			String name = etName.getText().toString();
-			if (name.isEmpty()) {
-				return;
-			}
-			// Save facial features in knownFaces
-			if (!faceStorage.extendRegistered(name, rec.getExtra(), true)) {
-				Toast.makeText(this, R.string.register_failed, Toast.LENGTH_LONG).show();
-			}
-			dlg.dismiss();
-		});
-		builder.setView(dialogLayout);
-		builder.show();
 	}
 
 }

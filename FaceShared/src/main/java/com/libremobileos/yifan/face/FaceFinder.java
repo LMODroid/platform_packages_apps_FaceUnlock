@@ -33,7 +33,7 @@ import java.util.List;
 public class FaceFinder {
 	private final FaceDetector faceDetector;
 	private final FaceDetector.InputImageProcessor detectorInputProcessor;
-	private final FaceScanner faceScanner;
+	/* package-private */ final FaceScanner faceScanner;
 	private final int sensorOrientation;
 
 	private FaceFinder(Context ctx, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {

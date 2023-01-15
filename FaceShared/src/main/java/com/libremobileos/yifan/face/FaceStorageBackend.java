@@ -35,8 +35,9 @@ import java.util.stream.Collectors;
  * @see SharedPreferencesFaceStorageBackend
  */
 public abstract class FaceStorageBackend {
-	private final Base64.Encoder encoder = Base64.getUrlEncoder();
-	private final Base64.Decoder decoder = Base64.getUrlDecoder();
+	private static final Base64.Encoder encoder = Base64.getUrlEncoder();
+	private static final Base64.Decoder decoder = Base64.getUrlDecoder();
+
 	/* package-private */ Set<String> cachedNames = null;
 	/* package-private */ HashMap<String, float[][]> cachedData = null;
 
@@ -69,17 +70,13 @@ public abstract class FaceStorageBackend {
 		if (duplicate && !replace) {
 			return false;
 		}
-		cachedNames.add(rawname);
-		cachedData.put(rawname, alldata);
-		StringBuilder b = new StringBuilder();
-		for (float[] data : alldata) {
-			ByteBuffer buff = ByteBuffer.allocate(4 * data.length);
-			for (float f : data) {
-				buff.putFloat(f);
-			}
-			b.append(encoder.encodeToString(buff.array())).append(":");
+		if (cachedNames != null) {
+			cachedNames.add(rawname);
+			cachedData.put(rawname, alldata);
+		} else {
+			flushCache();
 		}
-		return registerInternal(name, b.substring(0, b.length() - 1), duplicate);
+		return registerInternal(name, FaceDataEncoder.encode(alldata), duplicate);
 	}
 
 	/**
@@ -135,14 +132,7 @@ public abstract class FaceStorageBackend {
 	public float[][] get(String name) {
 		float[][] f = getCached(name);
 		if (f != null) return f;
-		String[] a = getInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8))).split(":");
-		f = new float[a.length][];
-		int i = 0;
-		for (String s : a) {
-			FloatBuffer buf = ByteBuffer.wrap(decoder.decode(s)).asFloatBuffer();
-			f[i] = new float[buf.capacity()];
-			buf.get(f[i++]);
-		}
+		f = FaceDataEncoder.decode(getInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8))));
 		cachedData.put(name, f);
 		return f;
 	}

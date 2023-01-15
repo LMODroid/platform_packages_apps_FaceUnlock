@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.util.Log;
@@ -381,5 +382,18 @@ public class FaceScanner {
 			Log.e("FaceScanner", Log.getStackTraceString(e));
 			return null;
 		}
+	}
+
+	/* package-private */ float[] brightnessTest(int color) {
+		Bitmap b = Bitmap.createBitmap(FaceScanner.TF_OD_API_INPUT_SIZE, FaceScanner.TF_OD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
+		Canvas c = new Canvas(b);
+		c.drawColor(color);
+		List<SimilarityClassifier.Recognition> results = null;
+		try {
+			results = getClassifier().recognizeImage(b);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return results.get(0).getExtra()[0];
 	}
 }

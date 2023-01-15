@@ -3,6 +3,12 @@
 	<string name="add_face">Add Face</string>
 	<string name="input_name">Input name</string>
 	<string name="ok">OK</string>
-	<string name="tap_to_add_face">Tap anywhere to add face</string>
+	<string name="tap_to_add_face">Tap anywhere to open settings</string>
 	<string name="register_failed">Registering the face failed.</string>
+	<string name="title_activity_settings">SettingsActivity</string>
+	<string name="internal_err">Internal error</string>
+	<string name="face_unlock">Face Unlock</string>
+	<string name="next">Next</string>
+	<string name="cancel">Cancel</string>
+	<string name="accuracy">We recommend 5 scans in optimal light and 5 in suboptimal. This ensures maximum accuracy. If you scan your face in different positions, there will be added accuracy.</string>
 </resources>
