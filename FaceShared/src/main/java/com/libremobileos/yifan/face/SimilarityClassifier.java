@@ -36,10 +36,10 @@ import java.util.Locale;
           final String labelFilename,
           final int inputSize,
           final boolean isQuantized,
-          final boolean hwAccleration,
-          final boolean useEnhancedAccleration, // if hwAccleration==true, setting this uses NNAPI instead of GPU. if false, it toggles XNNPACK
+          final boolean hwAcceleration,
+          final boolean useEnhancedAcceleration, // if hwAcceleration==true, setting this uses NNAPI instead of GPU. if false, it toggles XNNPACK
           final int numThreads) throws IOException {
-    return TFLiteObjectDetectionAPIModel.create(assetManager, modelFilename, labelFilename, inputSize, isQuantized, hwAccleration, useEnhancedAccleration, numThreads);
+    return TFLiteObjectDetectionAPIModel.create(assetManager, modelFilename, labelFilename, inputSize, isQuantized, hwAcceleration, useEnhancedAcceleration, numThreads);
   }
 
   /* package-private */ abstract List<Recognition> recognizeImage(Bitmap bitmap);

@@ -40,13 +40,11 @@ import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
-import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.libremobileos.yifan.face.FaceRecognizer;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
-import com.libremobileos.yifan.face.VolatileFaceStorageBackend;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,8 +62,6 @@ public class MainActivity extends AppCompatActivity {
 	private FaceBoundsOverlayView overlayView;
 	// The desired camera input size
 	private final Size desiredInputSize = new Size(640, 480);
-	// Which camera to use
-	private final int selectedCamera = CameraSelector.LENS_FACING_FRONT;
 	// The calculated actual processing width & height
 	private int width, height;
 	// Store registered Faces in Memory
@@ -104,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
 		Preview preview = new Preview.Builder()
 				.build();
 
+		// Which camera to use
+		int selectedCamera = CameraSelector.LENS_FACING_FRONT;
 		CameraSelector cameraSelector = new CameraSelector.Builder()
 				.requireLensFacing(selectedCamera)
 				.build();
@@ -136,13 +134,12 @@ public class MainActivity extends AppCompatActivity {
 
 			for (FaceRecognizer.Face face : data) {
 				RectF boundingBox = new RectF(face.getLocation());
-				if (selectedCamera == CameraSelector.LENS_FACING_FRONT) {
-					// Camera is frontal so the image is flipped horizontally,
-					// so flip it again.
-					Matrix flip = new Matrix();
-					flip.postScale(-1, 1, width / 2.0f, height / 2.0f);
-					flip.mapRect(boundingBox);
-				}
+
+				// Camera is frontal so the image is flipped horizontally,
+				// so flip it again.
+				Matrix flip = new Matrix();
+				flip.postScale(-1, 1, width / 2.0f, height / 2.0f);
+				flip.mapRect(boundingBox);
 
 				// Generate UI text for face
 				String uiText;
@@ -175,7 +172,15 @@ public class MainActivity extends AppCompatActivity {
 		// Create AI-based face detection
 		//faceStorage = new VolatileFaceStorageBackend();
 		faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
-		faceRecognizer = FaceRecognizer.create(this, faceStorage, width, height, 0 /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */);
+		faceRecognizer = FaceRecognizer.create(this,
+				faceStorage, /* face data storage */
+				0.6f, /* minimum confidence to consider object as face */
+				width, /* bitmap width */
+				height, /* bitmap height */
+				0, /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */
+				0.7f, /* maximum distance to track face */
+				1 /* minimum model count to track face */
+		);
 	}
 
 	private void showAddFaceDialog(FaceRecognizer.Face rec) {

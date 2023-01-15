@@ -26,7 +26,14 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Store Faces on disk (or in memory). This abstract class already performs error checking, caching and data type conversion for users. */
+/**
+ * Store Faces on disk (or in memory, or anywhere else, really).
+ * This abstract class already performs error checking, caching and data type conversion for both users and implementations.
+ * Creating a new implementation only requires any key-value store that can store Base64-encoded strings.
+ * An implementation is required to use this class.
+ * @see VolatileFaceStorageBackend
+ * @see SharedPreferencesFaceStorageBackend
+ */
 public abstract class FaceStorageBackend {
 	private final Base64.Encoder encoder = Base64.getUrlEncoder();
 	private final Base64.Decoder decoder = Base64.getUrlDecoder();
@@ -37,12 +44,24 @@ public abstract class FaceStorageBackend {
 		flushCache();
 	}
 
+	/**
+	 * @return {@link Set} of all known faces (names only)
+	 */
 	public Set<String> getNames() {
 		Set<String> result = getNamesCached();
 		if (result != null) return result;
 		return (cachedNames = getNamesInternal().stream().map(v -> new String(decoder.decode(v), StandardCharsets.UTF_8)).collect(Collectors.toSet()));
 	}
 
+	/**
+	 * Register/store new face.
+	 * @param rawname Name of the face, needs to be unique.
+	 * @param alldata Face detection model data to store.
+	 * @param replace Allow replacing an already registered face (based on name). If false and it's still attempted, the method returns false and does nothing.
+	 * @return If registering was successful.
+	 * @see #register(String, float[][])
+	 * @see #register(String, float[])
+	 */
 	public boolean register(String rawname, float[][] alldata, boolean replace) {
 		String name = encoder.encodeToString(rawname.getBytes(StandardCharsets.UTF_8));
 		boolean duplicate = getNamesInternal().contains(name);
@@ -62,14 +81,38 @@ public abstract class FaceStorageBackend {
 		return registerInternal(name, b.substring(0, b.length() - 1), duplicate);
 	}
 
+	/**
+	 * Register/store new face. Calls {@link #register(String, float[][], boolean)} and does not allow replacements.
+	 * @param rawname Name of the face, needs to be unique.
+	 * @param alldata Face detection model data to store.
+	 * @return If registering was successful.
+	 * @see #register(String, float[][], boolean)
+	 * @see #register(String, float[])
+	 */
 	public boolean register(String rawname, float[][] alldata) {
 		return register(rawname, alldata, false);
 	}
 
+	/**
+	 * Store 1D face model by converting it to 2D and then calling {@link #register(String, float[][])}.<br>
+	 * Implementation looks like this: <code>return register(rawname, new float[][] { alldata })</code>).<br>
+	 * @param rawname Name of the face, needs to be unique.
+	 * @param alldata 1D face detection model data to store.
+	 * @return If registering was successful.
+	 * @see #register(String, float[][], boolean)
+	 * @see #register(String, float[][])
+	 */
 	public boolean register(String rawname, float[] alldata) {
 		return register(rawname, new float[][] { alldata });
 	}
 
+	/**
+	 * Adds 1D face model to existing 2D face model to improve accuracy.
+	 * @param rawname Name of the face, needs to be unique.
+	 * @param alldata 1D face detection model data to sto
+	 * @param add If the face doesn't already exist, can we create it?
+	 * @return If registering was successful.
+	 */
 	public boolean extendRegistered(String rawname, float[] alldata, boolean add) {
 		if (!getNames().contains(rawname)) {
 			if (!add)
@@ -83,10 +126,11 @@ public abstract class FaceStorageBackend {
 		return register(rawname, combinedArray, true);
 	}
 
-	public boolean extendRegistered(String rawname, float[] alldata) {
-		return extendRegistered(rawname, alldata, false);
-	}
-
+	/**
+	 * Load 2D face model from storage.
+	 * @param name The name of the face to load.
+	 * @return The face model.
+	 */
 	public float[][] get(String name) {
 		float[][] f = getCached(name);
 		if (f != null) return f;
@@ -102,6 +146,12 @@ public abstract class FaceStorageBackend {
 		return f;
 	}
 
+	/**
+	 * Delete all references to a face.
+	 * @param name The face to delete.
+	 * @return If deletion was successful.
+	 */
+	@SuppressWarnings("unused")
 	public boolean delete(String name) {
 		cachedNames.remove(name);
 		cachedData.remove(name);

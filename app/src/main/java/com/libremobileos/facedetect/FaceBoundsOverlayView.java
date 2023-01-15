@@ -37,7 +37,7 @@ public class FaceBoundsOverlayView extends View {
 	private List<Pair<RectF, String>> bounds = null;
 	private Paint paint, textPaint;
 	private Matrix transform = null;
-	private int extraw, extrah, viewraww, viewrawh, sensorWidth, sensorHeight;
+	private int extraWidth, extraHeight, viewWidth, viewHeight, sensorWidth, sensorHeight;
 
 	public FaceBoundsOverlayView(Context context) {
 		this(context, null);
@@ -68,10 +68,10 @@ public class FaceBoundsOverlayView extends View {
 	}
 
 	@Override
-	protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-		super.onSizeChanged(w, h, oldw, oldh);
-		viewraww = w;
-		viewrawh = h;
+	protected void onSizeChanged(int w, int h, int oldWidth, int oldHeight) {
+		super.onSizeChanged(w, h, oldWidth, oldHeight);
+		viewWidth = w;
+		viewHeight = h;
 		transform = null;
 	}
 
@@ -91,32 +91,32 @@ public class FaceBoundsOverlayView extends View {
 			textPaint.setTextSize(100);
 		}
 		// if camera size or view size changed, recalculate it
-		if (this.sensorWidth != sensorWidth || this.sensorHeight != sensorHeight || (viewraww + viewrawh) > 0) {
+		if (this.sensorWidth != sensorWidth || this.sensorHeight != sensorHeight || (viewWidth + viewHeight) > 0) {
 			this.sensorWidth = sensorWidth;
 			this.sensorHeight = sensorHeight;
-			int oldw = viewraww;
-			int oldh = viewrawh;
-			extraw = 0;
-			extrah = 0;
+			int oldWidth = viewWidth;
+			int oldHeight = viewHeight;
+			extraWidth = 0;
+			extraHeight = 0;
 			// calculate scaling keeping aspect ratio
-			int newh = (int)((oldw / (float)sensorWidth) * sensorHeight);
-			int neww = (int)((oldh / (float)sensorHeight) * sensorWidth);
+			int newHeight = (int)((oldWidth / (float)sensorWidth) * sensorHeight);
+			int newWidth = (int)((oldHeight / (float)sensorHeight) * sensorWidth);
 			// calculate out black bars
-			if (neww > oldw) {
-				extrah = (oldh - newh) / 2;
-				viewrawh = newh;
+			if (newWidth > oldWidth) {
+				extraHeight = (oldHeight - newHeight) / 2;
+				viewHeight = newHeight;
 			} else {
-				extraw = (oldw - neww) / 2;
-				viewraww = neww;
+				extraWidth = (oldWidth - newWidth) / 2;
+				viewWidth = newWidth;
 			}
 			// scale from image size to view size
-			transform = ImageUtils.getTransformationMatrix(sensorWidth, sensorHeight, viewraww, viewrawh, 0, false);
-			viewraww = 0; viewrawh = 0;
+			transform = ImageUtils.getTransformationMatrix(sensorWidth, sensorHeight, viewWidth, viewHeight, 0, false);
+			viewWidth = 0; viewHeight = 0;
 		}
 		// map bounds to view size
 		for (Pair<RectF, String> bound : bounds) {
 			transform.mapRect(bound.first);
-			bound.first.offset(extraw, extrah);
+			bound.first.offset(extraWidth, extraHeight);
 		}
 		invalidate();
 	}

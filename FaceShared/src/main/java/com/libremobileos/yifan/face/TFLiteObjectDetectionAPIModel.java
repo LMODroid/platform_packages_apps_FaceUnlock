@@ -64,20 +64,20 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
   // Pre-allocated buffers.
   private final Vector<String> labels = new Vector<>();
   private int[] intValues;
-  // outputLocations: array of shape [Batchsize, NUM_DETECTIONS,4]
+  // outputLocations: array of shape [Batch-size, NUM_DETECTIONS,4]
   // contains the location of detected boxes
   private float[][][] outputLocations;
-  // outputClasses: array of shape [Batchsize, NUM_DETECTIONS]
+  // outputClasses: array of shape [Batch-size, NUM_DETECTIONS]
   // contains the classes of detected boxes
   private float[][] outputClasses;
-  // outputScores: array of shape [Batchsize, NUM_DETECTIONS]
+  // outputScores: array of shape [Batch-size, NUM_DETECTIONS]
   // contains the scores of detected boxes
   private float[][] outputScores;
-  // numDetections: array of shape [Batchsize]
+  // numDetections: array of shape [Batch-size]
   // contains the number of detected boxes
   private float[] numDetections;
 
-  private float[][] embeedings;
+  private float[][] embeddings;
 
   private ByteBuffer imgData;
 
@@ -105,6 +105,9 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
    * @param labelFilename The filepath of label file for classes.
    * @param inputSize The size of image input
    * @param isQuantized Boolean representing model is quantized or not
+   * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+   * @param useEnhancedAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+   * @param numThreads How many threads to use, if running on CPU or with XNNPACK
    */
   public static SimilarityClassifier create(
       final AssetManager assetManager,
@@ -112,8 +115,8 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
       final String labelFilename,
       final int inputSize,
       final boolean isQuantized,
-      final boolean hwAccleration,
-      final boolean useEnhancedAccleration, // if hwAccleration==true, setting this uses NNAPI instead of GPU. if false, it toggles XNNPACK
+      final boolean hwAcceleration,
+      final boolean useEnhancedAcceleration,
       final int numThreads)
       throws IOException {
 
@@ -132,9 +135,9 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
 
     Interpreter.Options options = new Interpreter.Options();
     options.setNumThreads(numThreads);
-    options.setUseXNNPACK(hwAccleration || useEnhancedAccleration);
-    if (hwAccleration) {
-      if (useEnhancedAccleration) {
+    options.setUseXNNPACK(hwAcceleration || useEnhancedAcceleration);
+    if (hwAcceleration) {
+      if (useEnhancedAcceleration) {
         options.addDelegate(new NnApiDelegate());
       } else {
         options.addDelegate(new GpuDelegate());
@@ -205,8 +208,8 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
 
     if (!isModelQuantized) {
       // Here outputMap is changed to fit the Face Mask detector
-      embeedings = new float[1][OUTPUT_SIZE];
-      outputMap.put(0, embeedings);
+      embeddings = new float[1][OUTPUT_SIZE];
+      outputMap.put(0, embeddings);
     } else {
       outputLocations = new float[1][NUM_DETECTIONS][4];
       outputClasses = new float[1][NUM_DETECTIONS];
@@ -241,7 +244,7 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
 
       recognitions.add(rec);
 
-      rec.setExtra(embeedings);
+      rec.setExtra(embeddings);
     } else {
       // Show the best detections.
       // after scaling them back to the input size.

@@ -31,26 +31,31 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 
-/** Detect multiple faces in one large bitmap and return their locations */
+/**
+ * Detect multiple faces in one large {@link Bitmap} and returns {@link Face} objects.
+ * Requires preprocessed {@link InputImage} objects from {@link InputImageProcessor}.
+ */
 public class FaceDetector {
 	// Asset manager to load TFLite model
 	private final AssetManager am;
 	// TFLite Model API
 	private SimilarityClassifier classifier;
 	// Optional settings
-	private final boolean hwAccleration, enhancedHwAccleration;
+	private final boolean hwAcceleration, enhancedHwAcceleration;
 	private final int numThreads;
+	private final float minConfidence;
 	// Face Detection model parameters
 	private static final int TF_FD_API_INPUT_SIZE = 300;
 	private static final boolean TF_FD_API_IS_QUANTIZED = true;
 	private static final String TF_FD_API_MODEL_FILE = "detect-class1.tflite";
 	private static final String TF_FD_API_LABELS_FILE = "file:///android_asset/detect-class1.txt";
-	// Minimum detection confidence to track a detection.
-	private static final float MINIMUM_CONFIDENCE_TF_FD_API = 0.6f;
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 
-	// Wrapper around Bitmap to avoid user passing unprocessed data
+	/**
+	 * Wrapper around {@link Bitmap} to avoid user passing unprocessed data
+	 * @see InputImageProcessor
+	 */
 	public static class InputImage {
 		private final Bitmap processedImage;
 		private final Matrix cropToFrameTransform;
@@ -69,11 +74,20 @@ public class FaceDetector {
 		}
 	}
 
-	// Processes Bitmaps to compatible format
+	/**
+	 * Processes {@link Bitmap}s to compatible format
+	 * @see InputImage
+	 */
 	public static class InputImageProcessor {
 		private final Matrix frameToCropTransform;
 		private final Matrix cropToFrameTransform = new Matrix();
 
+		/**
+		 * Create new {@link InputImage} processor.
+		 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+		 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+		 * @param sensorOrientation rotation if the image should be rotated, or 0.
+		 */
 		public InputImageProcessor(int inputWidth, int inputHeight, int sensorOrientation) {
 			frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
@@ -83,6 +97,11 @@ public class FaceDetector {
 			frameToCropTransform.invert(cropToFrameTransform);
 		}
 
+		/**
+		 * Process {@link Bitmap} for use in AI model.
+		 * @param input {@link Bitmap} with length/height that were specified in the constructor
+		 * @return Processed {@link InputImage}
+		 */
 		public InputImage process(Bitmap input) {
 			Bitmap croppedBitmap = Bitmap.createBitmap(TF_FD_API_INPUT_SIZE, TF_FD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
 			final Canvas canvas = new Canvas(croppedBitmap);
@@ -91,46 +110,35 @@ public class FaceDetector {
 		}
 	}
 
-
-	/** An immutable result returned by a FaceDetector describing what was recognized. */
+	/** An immutable result returned by a {@link FaceDetector} describing what was recognized. */
 	public static class Face {
-		/**
-		 * A unique identifier for what has been recognized. Specific to the class, not the instance of
-		 * the object.
-		 */
+		// A unique identifier for what has been recognized. Specific to the class, not the instance of
+		// the object.
 		private final String id;
 
-		/** Display name for the recognition. */
-		private final String title;
-
-		/**
-		 * A sortable score for how good the recognition is relative to others. Higher should be better. Min: 0f Max: 1.0f
-		 */
 		private final Float confidence;
 
-		/** Optional location within the source image for the location of the recognized object. */
 		private final RectF location;
 
-		public Face(
-				final String id, final String title, final Float confidence, final RectF location) {
+		/* package-private */ Face(
+				final String id, final Float confidence, final RectF location) {
 			this.id = id;
-			this.title = title;
 			this.confidence = confidence;
 			this.location = location;
 		}
 
-		public String getId() {
+		/* package-private */ String getId() {
 			return id;
 		}
 
-		public String getTitle() {
-			return title;
-		}
-
+		/**
+		 * A sortable score for how good the recognition is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 */
 		public Float getConfidence() {
 			return confidence;
 		}
 
+		/** Optional location within the source image for the location of the recognized object. */
 		public RectF getLocation() {
 			return new RectF(location);
 		}
@@ -141,10 +149,6 @@ public class FaceDetector {
 			String resultString = "";
 			if (id != null) {
 				resultString += "[" + id + "] ";
-			}
-
-			if (title != null) {
-				resultString += title + " ";
 			}
 
 			if (confidence != null) {
@@ -160,18 +164,37 @@ public class FaceDetector {
 
 	}
 
-	public static FaceDetector create(Context context, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
-		return new FaceDetector(context.getAssets(), hwAccleration, enhancedHwAccleration, numThreads);
+	/**
+	 * Create {@link FaceDetector} instance.
+	 * @param context Android {@link Context} object, may be in background.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+	 * @param numThreads How many threads to use, if running on CPU or with XNNPACK
+	 * @return {@link FaceDetector} instance.
+	 * @see #create(Context, float)
+	 */
+	public static FaceDetector create(Context context, float minConfidence, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		return new FaceDetector(context.getAssets(), minConfidence, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
-	public static FaceDetector create(Context context) {
-		return create(context, false, true, 4);
+	/**
+	 * Create {@link FaceDetector} instance with sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * @param context Android {@link Context} object, may be in background.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @return {@link FaceDetector} instance.
+	 * @see #create(Context, float, boolean, boolean, int)
+	 */
+	@SuppressWarnings("unused")
+	public static FaceDetector create(Context context, float minConfidence) {
+		return create(context, minConfidence, false, true, 4);
 	}
 
-	private FaceDetector(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+	private FaceDetector(AssetManager am, float minConfidence, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
 		this.am = am;
-		this.hwAccleration = hwAccleration;
-		this.enhancedHwAccleration = enhancedHwAccleration;
+		this.minConfidence = minConfidence;
+		this.hwAcceleration = hwAcceleration;
+		this.enhancedHwAcceleration = enhancedHwAcceleration;
 		this.numThreads = numThreads;
 	}
 
@@ -182,14 +205,19 @@ public class FaceDetector {
 					TF_FD_API_LABELS_FILE,
 					TF_FD_API_INPUT_SIZE,
 					TF_FD_API_IS_QUANTIZED,
-					hwAccleration,
-					enhancedHwAccleration,
+					hwAcceleration,
+					enhancedHwAcceleration,
 					numThreads
 			);
 		}
 		return classifier;
 	}
 
+	/**
+	 * Detect multiple faces in an {@link InputImage} and return their locations.
+	 * @param input Image, processed with {@link InputImageProcessor}
+	 * @return List of <a href="#{@link}">{@link Face}</a> objects
+	 */
 	public List<Face> detectFaces(InputImage input) {
 		try {
 			List<SimilarityClassifier.Recognition> results = getClassifier().recognizeImage(input.getProcessedImage());
@@ -197,9 +225,9 @@ public class FaceDetector {
 			final List<Face> mappedRecognitions = new LinkedList<>();
 			for (final SimilarityClassifier.Recognition result : results) {
 				final RectF location = result.getLocation();
-				if (location != null && result.getDistance() >= MINIMUM_CONFIDENCE_TF_FD_API) {
+				if (location != null && result.getDistance() >= minConfidence) {
 					input.getCropToFrameTransform().mapRect(location);
-					mappedRecognitions.add(new Face(result.getId(), result.getTitle(), result.getDistance(), location));
+					mappedRecognitions.add(new Face(result.getId(), result.getDistance(), location));
 				}
 			}
 			return mappedRecognitions;

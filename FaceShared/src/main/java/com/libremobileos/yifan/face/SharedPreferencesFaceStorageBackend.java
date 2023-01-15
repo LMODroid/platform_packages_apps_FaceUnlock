@@ -4,9 +4,16 @@ import android.content.SharedPreferences;
 
 import java.util.Set;
 
+/**
+ * {@link FaceStorageBackend} storing data in {@link SharedPreferences}
+ */
 public class SharedPreferencesFaceStorageBackend extends FaceStorageBackend {
 	private final SharedPreferences prefs;
 
+	/**
+	 * Create/load {@link SharedPreferencesFaceStorageBackend}
+	 * @param prefs {@link SharedPreferences} to use
+	 */
 	public SharedPreferencesFaceStorageBackend(SharedPreferences prefs) {
 		this.prefs = prefs;
 	}

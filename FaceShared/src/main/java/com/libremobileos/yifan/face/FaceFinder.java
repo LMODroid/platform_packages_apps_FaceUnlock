@@ -24,46 +24,77 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Combination of FaceDetector and FaceScanner for workloads where
- * both face detection and face scanning are required. However, this
- * class makes no assumptions about the workload and is therefore bare-bones.
- * Because of this, usage of an task-specific class like FaceRecognizer
- * is highly recommended, unless these do not fit your usecase.
+ * Combination of <a href="{@link}">{@link FaceDetector}</a> and <a href="{@link}">{@link FaceScanner}</a>
+ * for workloads where both face detection and face scanning are required.
+ * However, this class makes no assumptions about the workload and is therefore bare-bones.
+ * Because of this, usage of an task-specific class like <a href="{@link}">{@link FaceRecognizer}</a>
+ * is highly recommended, unless these do not fit your use case.
  */
 public class FaceFinder {
 	private final FaceDetector faceDetector;
-	private final FaceDetector.InputImageProcessor detectorInputProc;
+	private final FaceDetector.InputImageProcessor detectorInputProcessor;
 	private final FaceScanner faceScanner;
 	private final int sensorOrientation;
 
-	private FaceFinder(Context ctx, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
-		this.faceDetector = FaceDetector.create(ctx, hwAccleration, enhancedHwAccleration, numThreads);
-		this.faceScanner = FaceScanner.create(ctx, hwAccleration, enhancedHwAccleration, numThreads);
+	private FaceFinder(Context ctx, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		this.faceDetector = FaceDetector.create(ctx, minConfidence, hwAcceleration, enhancedHwAcceleration, numThreads);
+		this.faceScanner = FaceScanner.create(ctx, hwAcceleration, enhancedHwAcceleration, numThreads);
 		this.sensorOrientation = sensorOrientation;
-		this.detectorInputProc = new FaceDetector.InputImageProcessor(inputWidth, inputHeight, sensorOrientation);
+		this.detectorInputProcessor = new FaceDetector.InputImageProcessor(inputWidth, inputHeight, sensorOrientation);
 	}
 
-	public static FaceFinder create(Context ctx, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
-		return new FaceFinder(ctx, inputWidth, inputHeight, sensorOrientation, hwAccleration, enhancedHwAccleration, numThreads);
+	/**
+	 * Create new {@link FaceFinder} instance.
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+	 * @param numThreads How many threads to use, if running on CPU or with XNNPACK
+	 * @return {@link FaceFinder} instance
+	 * @see #create(Context, float, int, int, int)
+	 */
+	public static FaceFinder create(Context ctx, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		return new FaceFinder(ctx, minConfidence, inputWidth, inputHeight, sensorOrientation, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
-	public static FaceFinder create(Context ctx, int inputWidth, int inputHeight, int sensorOrientation) {
-		return create(ctx, inputWidth, inputHeight, sensorOrientation, false, true, 4);
+	/**
+	 * Create new {@link FaceFinder} instance  with sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @return FaceFinder instance
+	 * @see #create(Context, float, int, int, int, boolean, boolean, int)
+	 */
+	@SuppressWarnings("unused")
+	public static FaceFinder create(Context ctx, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation) {
+		return create(ctx, minConfidence, inputWidth, inputHeight, sensorOrientation, false, true, 4);
 	}
 
+	/**
+	 * Process an Bitmap using {@link FaceDetector},
+	 * scanning the resulting found faces using {@link FaceScanner} after manually cropping the image.
+	 * Adds extra metadata (location) to {@link FaceScanner.Face} based on best effort basis.
+	 * @param input Bitmap to process.
+	 * @return {@link List} of {@link Pair}s of detection results from {@link FaceDetector} and {@link FaceScanner}
+	 */
 	public List<Pair<FaceDetector.Face, FaceScanner.Face>> process(Bitmap input) {
-		FaceDetector.InputImage inputImage = detectorInputProc.process(input);
+		FaceDetector.InputImage inputImage = detectorInputProcessor.process(input);
 
 		final List<FaceDetector.Face> faces = faceDetector.detectFaces(inputImage);
 		final List<Pair<FaceDetector.Face, FaceScanner.Face>> results = new ArrayList<>();
 
 		if (faces != null && faces.size() > 0) {
-			final FaceScanner.InputImageProcessor scannerInputProc = new FaceScanner.InputImageProcessor(input, sensorOrientation);
+			final FaceScanner.InputImageProcessor scannerInputProcessor = new FaceScanner.InputImageProcessor(input, sensorOrientation);
 
 			for (FaceDetector.Face face : faces) {
 				if (face == null) continue;
 
-				FaceScanner.InputImage faceBmp = scannerInputProc.process(face.getLocation());
+				FaceScanner.InputImage faceBmp = scannerInputProcessor.process(face.getLocation());
 				if (faceBmp == null) continue;
 
 				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp);

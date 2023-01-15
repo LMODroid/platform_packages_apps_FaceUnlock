@@ -30,26 +30,31 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-/** Scan ONE Face inside an perfectly cropped Bitmap and return facial features */
+/**
+ * Raw wrapper around AI model that scans ONE Face inside an perfectly cropped Bitmap and returns facial features.
+ * Most likely, specialized classes like {@link FaceRecognizer} or {@link FaceFinder}
+ * fit your use case better.
+ */
 public class FaceScanner {
 	// Asset manager to load TFLite model
 	private final AssetManager am;
 	// TFLite Model API
 	private SimilarityClassifier classifier;
 	// Optional settings
-	private final boolean hwAccleration, enhancedHwAccleration;
+	private final boolean hwAcceleration, enhancedHwAcceleration;
 	private final int numThreads;
 	// MobileFaceNet model parameters
 	private static final int TF_OD_API_INPUT_SIZE = 112;
 	private static final boolean TF_OD_API_IS_QUANTIZED = false;
 	private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
 	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
-	// Minimum detection confidence to track a detection.
-	public static final float MAXIMUM_DISTANCE_TF_OD_API = 0.7f;
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 
-	// Wrapper around Bitmap to avoid user passing unprocessed data
+	/**
+	 * Wrapper around Bitmap to avoid user passing unprocessed data
+	 * @see InputImageProcessor
+	 */
 	public static class InputImage {
 		private final Bitmap processedImage;
 		private final Bitmap userDisplayableImage;
@@ -68,13 +73,25 @@ public class FaceScanner {
 		}
 	}
 
-	// Processes Bitmaps to compatible format
+	/**
+	 * Processes Bitmaps to compatible format.
+	 * This class supports 2 modes of operation:<br>
+	 * 1. Preprocess perfectly cropped {@link Bitmap} to AI-compatible format, using the static method {@link #process(Bitmap, int)}</a><br>
+	 * 2. Crop one large {@link Bitmap} to multiple {@link InputImage}s using bounds inside {@link RectF} objects,
+	 *    with {@link #InputImageProcessor(Bitmap, int)} and {@link #process(RectF)}.
+	 *    This allows processing multiple faces on one {@link Bitmap}, for usage with {@link FaceDetector} and similar classes.
+	 * @see InputImage
+	 */
 	public static class InputImageProcessor {
 		private final int sensorOrientation;
 		private final Bitmap portraitBmp;
 		private final Matrix transform;
 
-		// If the class gets instantiated, we enter an special mode of operation for detecting multiple faces on one large Bitmap.
+		/**
+		 * If the class gets instantiated, we enter an special mode of operation for detecting multiple faces on one large {@link Bitmap}.
+		 * @param rawImage The image with all faces to be detected
+		 * @param sensorOrientation rotation if the image should be rotated, or 0.
+		 */
 		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
 			this.sensorOrientation = sensorOrientation;
 			Bitmap portraitBmp = Bitmap.createBitmap(
@@ -92,7 +109,12 @@ public class FaceScanner {
 			this.portraitBmp = portraitBmp;
 		}
 
-		// In the normal mode of operation, we take a Bitmap with the cropped face and convert it.
+		/**
+		 * In normal mode of operation, we take a perfectly cropped {@link Bitmap} containing one face and process it.
+		 * @param input Bitmap to process.
+		 * @param sensorOrientation rotation if the image should be rotated, or 0.
+		 * @return Converted {@link InputImage}
+		 */
 		public static InputImage process(Bitmap input, int sensorOrientation) {
 			Matrix frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
@@ -105,6 +127,12 @@ public class FaceScanner {
 			return new InputImage(croppedBitmap, input);
 		}
 
+		/**
+		 * In normal mode of operation, we take a perfectly cropped {@link Bitmap} containing one face and process it.
+		 * This utility method uses sensorOrientation that was passed in the constructor and calls {@link #process(Bitmap, int)}
+		 * @param input Bitmap to process.
+		 * @see #process(Bitmap, int)
+		 */
 		public InputImage process(Bitmap input) {
 			return process(input, sensorOrientation);
 		}
@@ -224,6 +252,12 @@ public class FaceScanner {
 			return resultString.trim();
 		}
 
+		/**
+		 * Compare two {@link Face}s
+		 * @param other The {@link #getExtra() extra} from the other face.
+		 * @return The {@link #getDistance() distance}, lower is better.
+		 * @see #compare(Face)
+		 */
 		public float compare(float[] other) {
 			final float[] emb = normalizeFloat(extra);
 			final float[] knownEmb = normalizeFloat(other);
@@ -235,6 +269,13 @@ public class FaceScanner {
 			return (float) Math.sqrt(distance);
 		}
 
+		/**
+		 * Compare two {@link Face}s
+		 * @param other The other face.
+		 * @return The {@link #getDistance() distance}, lower is better.
+		 * @see #compare(float[])
+		 */
+		@SuppressWarnings("unused")
 		public float compare(Face other) {
 			return compare(other.getExtra());
 		}
@@ -257,18 +298,34 @@ public class FaceScanner {
 		}
 	}
 
-	public static FaceScanner create(Context context, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
-		return new FaceScanner(context.getAssets(), hwAccleration, enhancedHwAccleration, numThreads);
+	/**
+	 * Create {@link FaceScanner} instance.
+	 * @param context Android {@link Context} object, may be in background.
+	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+	 * @param numThreads How many threads to use, if running on CPU or with XNNPACK
+	 * @return {@link FaceScanner} instance.
+	 * @see #create(Context)
+	 */
+	public static FaceScanner create(Context context, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		return new FaceScanner(context.getAssets(), hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
+	/**
+	 * Create {@link FaceScanner} instance with sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * @param context Android {@link Context} object, may be in background.
+	 * @return {@link FaceScanner} instance.
+	 * @see #create(Context, boolean, boolean, int)
+	 */
+	@SuppressWarnings("unused")
 	public static FaceScanner create(Context context) {
 		return create(context, false, true, 4);
 	}
 
-	private FaceScanner(AssetManager am, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+	private FaceScanner(AssetManager am, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
 		this.am = am;
-		this.hwAccleration = hwAccleration;
-		this.enhancedHwAccleration = enhancedHwAccleration;
+		this.hwAcceleration = hwAcceleration;
+		this.enhancedHwAcceleration = enhancedHwAcceleration;
 		this.numThreads = numThreads;
 	}
 
@@ -279,14 +336,19 @@ public class FaceScanner {
 					TF_OD_API_LABELS_FILE,
 					TF_OD_API_INPUT_SIZE,
 					TF_OD_API_IS_QUANTIZED,
-					hwAccleration,
-					enhancedHwAccleration,
+					hwAcceleration,
+					enhancedHwAcceleration,
 					numThreads
 			);
 		}
 		return classifier;
 	}
 
+	/**
+	 * Scan the face inside the {@link InputImage}.
+	 * @param input The {@link InputImage} to process
+	 * @return {@link Face}
+	 */
 	public Face detectFace(InputImage input) {
 		try {
 			List<SimilarityClassifier.Recognition> results = getClassifier().recognizeImage(input.getProcessedImage());

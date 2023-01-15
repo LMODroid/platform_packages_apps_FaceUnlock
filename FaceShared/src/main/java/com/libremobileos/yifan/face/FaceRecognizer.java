@@ -16,8 +16,6 @@
 
 package com.libremobileos.yifan.face;
 
-import static com.libremobileos.yifan.face.FaceScanner.MAXIMUM_DISTANCE_TF_OD_API;
-
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
@@ -27,26 +25,112 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/** Implementation of Face Detection workload using FaceStorageBackend, based on FaceFinder */
+/**
+ * Task-specific API for detecting & recognizing faces in an image.
+ * Uses {@link FaceFinder} to detect and scan faces, {@link FaceStorageBackend} to store and retrieve the saved faces and returns the optimal result.
+ */
 public class FaceRecognizer {
 	private final FaceStorageBackend storage;
 	private final FaceFinder detector;
-	private final int MINIMUM_MATCHING_MODELS_TF_OD_API = 1;
+	// Minimum detection confidence to track a detection.
+	private final float maxDistance;
+	// Minimum count of matching detection models.
+	private final int minMatchingModels;
+	// Minimum count of matching detection models. (ratio)
+	private final float minModelRatio;
 
-	private FaceRecognizer(Context ctx, FaceStorageBackend storage, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
+	private FaceRecognizer(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, int minMatchingModels, float minModelRatio, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
 		this.storage = storage;
-		this.detector = FaceFinder.create(ctx, inputWidth, inputHeight, sensorOrientation, hwAccleration, enhancedHwAccleration, numThreads);
+		this.detector = FaceFinder.create(ctx, minConfidence, inputWidth, inputHeight, sensorOrientation, hwAcceleration, enhancedHwAcceleration, numThreads);
+		this.maxDistance = maxDistance;
+		this.minMatchingModels = minMatchingModels;
+		this.minModelRatio = minModelRatio;
 	}
 
-	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, int inputWidth, int inputHeight, int sensorOrientation, boolean hwAccleration, boolean enhancedHwAccleration, int numThreads) {
-		return new FaceRecognizer(ctx, storage, inputWidth, inputHeight, sensorOrientation, hwAccleration, enhancedHwAccleration, numThreads);
+	/**
+	 * Create {@link FaceRecognizer} instance, with minimum matching model constraint.
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param minMatchingModels Minimum count of matching models for one face to count as recognized. If undesired, set to 1
+	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+	 * @param numThreads How many threads to use, if running on CPU or with XNNPACK
+	 * @return {@link FaceRecognizer} instance.
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int)
+	 */
+	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, int minMatchingModels, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		return new FaceRecognizer(ctx, storage, minConfidence, inputWidth, inputHeight, sensorOrientation, maxDistance, minMatchingModels, 0, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
-	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, int inputWidth, int inputHeight, int sensorOrientation) {
-		return create(ctx, storage, inputWidth, inputHeight, sensorOrientation, false, true, 4);
+	/**
+	 * Create {@link FaceRecognizer} instance, with matching model ratio constraint.
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param minModelRatio Minimum count of matching models for one face to count as recognized. Must be higher or equal to 0.0f and smaller or equal to 1.0f. If undesired, set to 0f
+	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
+	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
+	 * @param numThreads How many threads to use, if running on CPU or with XNNPACK
+	 * @return {@link FaceRecognizer} instance.
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int)
+	 */
+	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, float minModelRatio, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
+		return new FaceRecognizer(ctx, storage, minConfidence, inputWidth, inputHeight, sensorOrientation, maxDistance, 0, minModelRatio, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
-	/** Combination of FaceScanner.Face and FaceDetector.Face for face recognition workloads */
+	/**
+	 * Create {@link FaceRecognizer} instance, with minimum matching model constraint. Has sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param minMatchingModels Minimum count of matching models for one face to count as recognized. If undesired, set to 1
+	 * @return {@link FaceRecognizer} instance.
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float)
+	 */
+	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, int minMatchingModels) {
+		return create(ctx, storage, minConfidence, inputWidth, inputHeight, sensorOrientation, maxDistance, minMatchingModels, false, true, 4);
+	}
+
+	/**
+	 * Create {@link FaceRecognizer} instance, with matching model ratio constraint. Has sensible defaults regarding hardware acceleration (CPU, XNNPACK, 4 threads).
+	 * @param ctx Android {@link Context} object, may be in background.
+	 * @param storage The {@link FaceStorageBackend} containing faces to be recognized.
+	 * @param minConfidence Minimum confidence to track a detection, must be higher than 0.0f and smaller than 1.0f
+	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
+	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
+	 * @param sensorOrientation rotation if the image should be rotated, or 0.
+	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param minModelRatio Minimum count of matching models for one face to count as recognized. Must be higher or equal to 0.0f and smaller or equal to 1.0f. If undesired, set to 0f
+	 * @return {@link FaceRecognizer} instance.
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float, boolean, boolean, int)
+	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int)
+	 */
+	@SuppressWarnings("unused")
+	public static FaceRecognizer create(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, float minModelRatio) {
+		return create(ctx, storage, minConfidence, inputWidth, inputHeight, sensorOrientation, maxDistance, minModelRatio, false, true, 4);
+	}
+
+	/** Stores a combination of {@link FaceScanner.Face} and {@link FaceDetector.Face}, for face recognition workloads */
 	public static class Face extends FaceScanner.Face {
 		private final float confidence;
 		private final int modelCount;
@@ -67,19 +151,35 @@ public class FaceRecognizer {
 			this(original, raw.getConfidence(), modelCount, modelRatio);
 		}
 
+		/**
+		 * A sortable score for how good the detection (NOT recognition, that's {@link #getDistance()}) is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 */
 		public float getConfidence() {
 			return confidence;
 		}
 
+		/**
+		 * How many models detected the face.
+		 */
 		public int getModelCount() {
 			return modelCount;
 		}
 
+		/**
+		 * How many models detected the face, ratio. Min: 0f Max: 1f
+		 * @return {@link #getModelCount()} divided through number of available models
+		 */
+		@SuppressWarnings("unused")
 		public float getModelRatio() {
 			return modelRatio;
 		}
 	}
 
+	/**
+	 * Detect faces and scan them
+	 * @param input {@link Bitmap} to process
+	 * @return {@link List} of {@link Face}s
+	 */
 	public List<Face> recognize(Bitmap input) {
 		final Set<String> savedFaces = storage.getNames();
 		final List<Pair<FaceDetector.Face, FaceScanner.Face>> faces = detector.process(input);
@@ -92,25 +192,27 @@ public class FaceRecognizer {
 			int matchingModelsOut = 0;
 			float modelRatioOut = 0;
 			for (String savedName : savedFaces) {
-				float[][] rawdata = storage.get(savedName);
+				float[][] rawData = storage.get(savedName);
 				int matchingModels = 0;
-				float finaldistance = Float.MAX_VALUE;
+				float finalDistance = Float.MAX_VALUE;
 				// Go through all saved models for one face
-				for (float[] data : rawdata) {
-					float newdistance = scanned.compare(data);
+				for (float[] data : rawData) {
+					float newDistance = scanned.compare(data);
 					// If the similarity is really low (not the same face), don't save it
-					if (newdistance < MAXIMUM_DISTANCE_TF_OD_API) {
+					if (newDistance < maxDistance) {
 						matchingModels++;
-						if (finaldistance > newdistance)
-							finaldistance = newdistance;
+						if (finalDistance > newDistance)
+							finalDistance = newDistance;
 					}
 				}
+				float modelRatio = (float)matchingModels / rawData.length;
 				// If another known face had better similarity, don't save it
-				if (matchingModels >= Math.min(rawdata.length, MINIMUM_MATCHING_MODELS_TF_OD_API) && finaldistance < scanned.getDistance()) {
+				if (minModelRatio > 0 ? minModelRatio < modelRatio :
+						matchingModels >= Math.min(rawData.length, minMatchingModels) && finalDistance < scanned.getDistance()) {
 					// We have a match! Save "Face identifier" and "Distance to original values"
-					scanned.addRecognitionData(savedName, finaldistance);
+					scanned.addRecognitionData(savedName, finalDistance);
 					matchingModelsOut = matchingModels;
-					modelRatioOut = (float)matchingModels / rawdata.length;
+					modelRatioOut = modelRatio;
 				}
 			}
 

@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /** In-memory FaceStorageBackend, bypassing encoding and storage, relying on cache entirely for performance */
+@SuppressWarnings("unused")
 public class VolatileFaceStorageBackend extends FaceStorageBackend {
 
 	public VolatileFaceStorageBackend() {
