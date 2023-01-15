@@ -132,13 +132,13 @@ public class FaceDetector {
 		}
 
 		/**
-		 * A sortable score for how good the recognition is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 * @return A sortable score for how good the recognition is relative to others. Higher should be better. Min: 0f Max: 1.0f
 		 */
 		public Float getConfidence() {
 			return confidence;
 		}
 
-		/** Optional location within the source image for the location of the recognized object. */
+		/** @return Optional location within the source image for the location of the recognized object. */
 		public RectF getLocation() {
 			return new RectF(location);
 		}
@@ -216,7 +216,7 @@ public class FaceDetector {
 	/**
 	 * Detect multiple faces in an {@link InputImage} and return their locations.
 	 * @param input Image, processed with {@link InputImageProcessor}
-	 * @return List of <a href="#{@link}">{@link Face}</a> objects
+	 * @return List of {@link Face} objects
 	 */
 	public List<Face> detectFaces(InputImage input) {
 		try {

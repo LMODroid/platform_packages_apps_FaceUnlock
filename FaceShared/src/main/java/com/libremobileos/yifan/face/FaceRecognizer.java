@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Task-specific API for detecting & recognizing faces in an image.
+ * Task-specific API for detecting &amp; recognizing faces in an image.
  * Uses {@link FaceFinder} to detect and scan faces, {@link FaceStorageBackend} to store and retrieve the saved faces and returns the optimal result.
  */
 public class FaceRecognizer {
@@ -152,14 +152,14 @@ public class FaceRecognizer {
 		}
 
 		/**
-		 * A sortable score for how good the detection (NOT recognition, that's {@link #getDistance()}) is relative to others. Higher should be better. Min: 0f Max: 1.0f
+		 * @return A sortable score for how good the detection (NOT recognition, that's {@link #getDistance()}) is relative to others. Higher should be better. Min: 0f Max: 1.0f
 		 */
 		public float getConfidence() {
 			return confidence;
 		}
 
 		/**
-		 * How many models detected the face.
+		 * @return How many models detected the face.
 		 */
 		public int getModelCount() {
 			return modelCount;

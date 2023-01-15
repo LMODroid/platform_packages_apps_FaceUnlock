@@ -76,7 +76,7 @@ public class FaceScanner {
 	/**
 	 * Processes Bitmaps to compatible format.
 	 * This class supports 2 modes of operation:<br>
-	 * 1. Preprocess perfectly cropped {@link Bitmap} to AI-compatible format, using the static method {@link #process(Bitmap, int)}</a><br>
+	 * 1. Preprocess perfectly cropped {@link Bitmap} to AI-compatible format, using the static method {@link #process(Bitmap, int)}<br>
 	 * 2. Crop one large {@link Bitmap} to multiple {@link InputImage}s using bounds inside {@link RectF} objects,
 	 *    with {@link #InputImageProcessor(Bitmap, int)} and {@link #process(RectF)}.
 	 *    This allows processing multiple faces on one {@link Bitmap}, for usage with {@link FaceDetector} and similar classes.
@@ -131,6 +131,7 @@ public class FaceScanner {
 		 * In normal mode of operation, we take a perfectly cropped {@link Bitmap} containing one face and process it.
 		 * This utility method uses sensorOrientation that was passed in the constructor and calls {@link #process(Bitmap, int)}
 		 * @param input Bitmap to process.
+		 * @return Converted {@link InputImage}
 		 * @see #process(Bitmap, int)
 		 */
 		public InputImage process(Bitmap input) {
