@@ -17,39 +17,22 @@
 package com.libremobileos.facedetect;
 
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.util.Pair;
-import android.util.Size;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.Preview;
-import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.camera.view.PreviewView;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.libremobileos.yifan.face.FaceRecognizer;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends CameraActivity {
 	// AI-based detector
@@ -119,7 +102,7 @@ public class MainActivity extends CameraActivity {
 				width, /* bitmap width */
 				height, /* bitmap height */
 				0, /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */
-				0.7f, /* maximum distance to track face */
+				0.7f, /* maximum distance (to saved face model, not from camera) to track face */
 				1 /* minimum model count to track face */
 		);
 	}

@@ -21,7 +21,10 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.Log;
 
@@ -51,6 +54,8 @@ public class FaceScanner {
 	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
+	// Brightness data
+	private final float[][] brightnessTest;
 
 	/**
 	 * Wrapper around Bitmap to avoid user passing unprocessed data
@@ -158,6 +163,20 @@ public class FaceScanner {
 		}
 	}
 
+	private float[] brightnessTest(int color) {
+		Bitmap b = Bitmap.createBitmap(FaceScanner.TF_OD_API_INPUT_SIZE, FaceScanner.TF_OD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
+		Canvas c = new Canvas(b);
+		c.drawColor(color);
+		List<SimilarityClassifier.Recognition> results;
+		try {
+			results = getClassifier().recognizeImage(b);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return results.get(0).getExtra()[0];
+	}
+
+
 	/** An immutable result returned by a FaceDetector describing what was recognized. */
 	public static class Face {
 		// A unique identifier for what has been recognized. Specific to the class, not the instance of
@@ -174,14 +193,18 @@ public class FaceScanner {
 
 		private final float[] extra;
 
+		/* package-private */ final float brightnessTest1, brightnessTest2;
+
 		/* package-private */ Face(
-				final String id, final String title, final Float distance, final RectF location, final Bitmap crop, final float[] extra) {
+				final String id, final String title, final Float distance, final RectF location, final Bitmap crop, final float[] extra, final float brightnessTest1, final float brightnessTest2) {
 			this.id = id;
 			this.title = title;
 			this.distance = distance;
 			this.location = location;
 			this.crop = crop;
 			this.extra = extra;
+			this.brightnessTest1 = brightnessTest1;
+			this.brightnessTest2 = brightnessTest2;
 		}
 
 		/* package-private */ String getId() {
@@ -198,6 +221,7 @@ public class FaceScanner {
 
 		/**
 		 * A score for how good the recognition is relative to others.
+		 * Do not confuse with 3D distance, this is entirely about recognition.
 		 * @return Sortable score. Lower is better.
 		 */
 		public Float getDistance() {
@@ -276,14 +300,23 @@ public class FaceScanner {
 			return resultString.trim();
 		}
 
+		public int getBrightnessHint() {
+			return (brightnessTest1 < 0.5f || brightnessTest2 < 0.4f) ? -1 : // really bad light
+					(brightnessTest1 + brightnessTest2 < 2.2f ? 0 // suboptimal
+							: 1); // optimal
+		}
+
 		/**
-		 * Compare two {@link Face}s
+		 * Static method to compare two {@link Face}s.
+		 * Usually, one of the instance methods is used though.
+		 * @param me The {@link #getExtra() extra} from one face.
 		 * @param other The {@link #getExtra() extra} from the other face.
 		 * @return The {@link #getDistance() distance}, lower is better.
 		 * @see #compare(Face)
+		 * @see #compare(float[])
 		 */
-		public float compare(float[] other) {
-			final float[] emb = normalizeFloat(extra);
+		public static float compare(float[] me, float[] other) {
+			final float[] emb = normalizeFloat(me);
 			final float[] knownEmb = normalizeFloat(other);
 			float distance = 0;
 			for (int i = 0; i < emb.length; i++) {
@@ -295,9 +328,21 @@ public class FaceScanner {
 
 		/**
 		 * Compare two {@link Face}s
+		 * @param other The {@link #getExtra() extra} from the other face.
+		 * @return The {@link #getDistance() distance}, lower is better.
+		 * @see #compare(Face)
+		 * @see #compare(float[], float[])
+		 */
+		public float compare(float[] other) {
+			return compare(getExtra(), other);
+		}
+
+		/**
+		 * Compare two {@link Face}s
 		 * @param other The other face.
 		 * @return The {@link #getDistance() distance}, lower is better.
 		 * @see #compare(float[])
+		 * @see #compare(float[], float[])
 		 */
 		@SuppressWarnings("unused")
 		public float compare(Face other) {
@@ -351,6 +396,7 @@ public class FaceScanner {
 		this.hwAcceleration = hwAcceleration;
 		this.enhancedHwAcceleration = enhancedHwAcceleration;
 		this.numThreads = numThreads;
+		this.brightnessTest = new float[][] { brightnessTest(Color.WHITE),brightnessTest(Color.BLACK) };
 	}
 
 	private SimilarityClassifier getClassifier() throws IOException {
@@ -371,29 +417,52 @@ public class FaceScanner {
 	/**
 	 * Scan the face inside the {@link InputImage}.
 	 * @param input The {@link InputImage} to process
+	 * @param allowPostprocessing Allow postprocessing to improve detection quality. Undesirable when registering faces.
 	 * @return {@link Face}
 	 */
-	public Face detectFace(InputImage input) {
+	public Face detectFace(InputImage input, boolean allowPostprocessing) {
 		try {
 			List<SimilarityClassifier.Recognition> results = getClassifier().recognizeImage(input.getProcessedImage());
 			SimilarityClassifier.Recognition result = results.get(0);
-			return new Face(result.getId(), result.getTitle(), result.getDistance(), null, input.getUserDisplayableImage(), result.getExtra()[0]);
+			float[] e = result.getExtra()[0];
+			Face f = new Face(result.getId(), result.getTitle(), result.getDistance(), null, input.getUserDisplayableImage(), e, Face.compare(e, brightnessTest[0]), Face.compare(e, brightnessTest[1]));
+			if (f.getBrightnessHint() == 0 && allowPostprocessing /* try to improve light situation with postprocessing if its bad but not terrible */) {
+				Face f2 = detectFace(new InputImage(doBrightnessPostProc(input.getProcessedImage()), doBrightnessPostProc(input.getUserDisplayableImage())), false);
+				if (f2 == null) // Earlier logs will have printed the cause.
+					return null;
+				if (f2.getBrightnessHint() == 1)
+					return f2; // Return if it helped.
+			}
+			return f;
 		} catch (IOException e) {
 			Log.e("FaceScanner", Log.getStackTraceString(e));
 			return null;
 		}
 	}
 
-	/* package-private */ float[] brightnessTest(int color) {
-		Bitmap b = Bitmap.createBitmap(FaceScanner.TF_OD_API_INPUT_SIZE, FaceScanner.TF_OD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
-		Canvas c = new Canvas(b);
-		c.drawColor(color);
-		List<SimilarityClassifier.Recognition> results = null;
-		try {
-			results = getClassifier().recognizeImage(b);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		return results.get(0).getExtra()[0];
+	private Bitmap doBrightnessPostProc(Bitmap input) {
+		// 30, which has been obtained using manual testing, gives the best balance between brightness and trashing facial features
+		return changeBitmapContrastBrightness(input, 30f);
+	}
+
+	// https://stackoverflow.com/a/17887577
+	private static Bitmap changeBitmapContrastBrightness(Bitmap bmp, float brightness) {
+		ColorMatrix cm = new ColorMatrix(new float[]
+				{
+						1, 0, 0, 0, brightness,
+						0, 1, 0, 0, brightness,
+						0, 0, 1, 0, brightness,
+						0, 0, 0, 1, 0
+				});
+
+		Bitmap ret = Bitmap.createBitmap(bmp.getWidth(), bmp.getHeight(), bmp.getConfig());
+
+		Canvas canvas = new Canvas(ret);
+
+		Paint paint = new Paint();
+		paint.setColorFilter(new ColorMatrixColorFilter(cm));
+		canvas.drawBitmap(bmp, 0, 0, paint);
+
+		return ret;
 	}
 }

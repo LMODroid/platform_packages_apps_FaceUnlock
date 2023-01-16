@@ -1,14 +1,15 @@
 <resources>
 	<string name="app_name">FaceDetect</string>
-	<string name="add_face">Add Face</string>
-	<string name="input_name">Input name</string>
-	<string name="ok">OK</string>
-	<string name="tap_to_add_face">Tap anywhere to open settings</string>
-	<string name="register_failed">Registering the face failed.</string>
-	<string name="title_activity_settings">SettingsActivity</string>
 	<string name="internal_err">Internal error</string>
 	<string name="face_unlock">Face Unlock</string>
 	<string name="next">Next</string>
 	<string name="cancel">Cancel</string>
-	<string name="accuracy">We recommend 5 scans in optimal light and 5 in suboptimal. This ensures maximum accuracy. If you scan your face in different positions, there will be added accuracy.</string>
+	<string name="accuracy">You must scan your face in optimal light conditions. This ensures maximum accuracy. If you scan your face in different positions, there will be added accuracy.</string>
+	<string name="found_2_faces">2 faces detected, please only have one face visible for your camera</string>
+	<string name="cant_find_face">Unable to find any face</string>
+	<string name="cant_scan_face">Can\'t properly scan your face, try to look into the camera directly and make sure your face is well-lit</string>
+	<string name="scan_face_now">Scan your face now</string>
+	<string name="register_failed">Registering your face has failed. We are sorry for the inconvience. Please try again later.</string>
+	<string name="welcome_text">**welcome text placeholder uwu**</string>
+	<string name="finish_msg">**finish text placeholder uwu**</string>
 </resources>

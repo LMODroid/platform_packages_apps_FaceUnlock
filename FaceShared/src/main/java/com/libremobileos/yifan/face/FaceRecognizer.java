@@ -18,8 +18,6 @@ package com.libremobileos.yifan.face;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.RectF;
 import android.util.Pair;
 
@@ -29,7 +27,8 @@ import java.util.Set;
 
 /**
  * Task-specific API for detecting &amp; recognizing faces in an image.
- * Uses {@link FaceFinder} to detect and scan faces, {@link FaceStorageBackend} to store and retrieve the saved faces and returns the optimal result.
+ * Uses {@link FaceFinder} to detect and scan faces, {@link FaceStorageBackend} to store and retrieve the saved faces and returns the optimal result.<br>
+ * Refrain from using this class for registering faces into the recognition system, {@link FaceFinder} does not perform post processing and is as such better suited.
  */
 public class FaceRecognizer {
 	private final FaceStorageBackend storage;
@@ -41,15 +40,12 @@ public class FaceRecognizer {
 	// Minimum count of matching detection models. (ratio)
 	private final float minModelRatio;
 
-	private final float[][] brightnessTest;
-
 	private FaceRecognizer(Context ctx, FaceStorageBackend storage, float minConfidence, int inputWidth, int inputHeight, int sensorOrientation, float maxDistance, int minMatchingModels, float minModelRatio, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
 		this.storage = storage;
 		this.detector = FaceFinder.create(ctx, minConfidence, inputWidth, inputHeight, sensorOrientation, hwAcceleration, enhancedHwAcceleration, numThreads);
 		this.maxDistance = maxDistance;
 		this.minMatchingModels = minMatchingModels;
 		this.minModelRatio = minModelRatio;
-		this.brightnessTest = new float[][] { detector.faceScanner.brightnessTest(Color.WHITE), detector.faceScanner.brightnessTest(Color.BLACK) };
 	}
 
 	/**
@@ -60,7 +56,7 @@ public class FaceRecognizer {
 	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
 	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
 	 * @param sensorOrientation rotation if the image should be rotated, or 0.
-	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param maxDistance Maximum distance (difference, not 3D distance) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
 	 * @param minMatchingModels Minimum count of matching models for one face to count as recognized. If undesired, set to 1
 	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
 	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
@@ -82,7 +78,7 @@ public class FaceRecognizer {
 	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
 	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
 	 * @param sensorOrientation rotation if the image should be rotated, or 0.
-	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param maxDistance Maximum distance (difference, not 3D distance) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
 	 * @param minModelRatio Minimum count of matching models for one face to count as recognized. Must be higher or equal to 0.0f and smaller or equal to 1.0f. If undesired, set to 0f
 	 * @param hwAcceleration Enable hardware acceleration (NNAPI/GPU)
 	 * @param enhancedHwAcceleration if hwAcceleration is enabled, use NNAPI instead of GPU. if not, this toggles XNNPACK
@@ -104,7 +100,7 @@ public class FaceRecognizer {
 	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
 	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
 	 * @param sensorOrientation rotation if the image should be rotated, or 0.
-	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param maxDistance Maximum distance (difference, not 3D distance) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
 	 * @param minMatchingModels Minimum count of matching models for one face to count as recognized. If undesired, set to 1
 	 * @return {@link FaceRecognizer} instance.
 	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, float, boolean, boolean, int)
@@ -123,7 +119,7 @@ public class FaceRecognizer {
 	 * @param inputWidth width of the {@link Bitmap}s that are going to be processed
 	 * @param inputHeight height of the {@link Bitmap}s that are going to be processed
 	 * @param sensorOrientation rotation if the image should be rotated, or 0.
-	 * @param maxDistance Maximum distance (difference) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
+	 * @param maxDistance Maximum distance (difference, not 3D distance) to a saved face to count as recognized. Must be higher than 0.0f and smaller than 1.0f
 	 * @param minModelRatio Minimum count of matching models for one face to count as recognized. Must be higher or equal to 0.0f and smaller or equal to 1.0f. If undesired, set to 0f
 	 * @return {@link FaceRecognizer} instance.
 	 * @see #create(Context, FaceStorageBackend, float, int, int, int, float, int, boolean, boolean, int)
@@ -140,24 +136,20 @@ public class FaceRecognizer {
 		private final float confidence;
 		private final int modelCount;
 		private final float modelRatio;
-		/* package-private */ final float brightnessTest1;
-		/* package-private */ final float brightnessTest2;
 
 		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
-			super(id, title, distance, location, crop, extra);
+			super(id, title, distance, location, crop, extra, brightnessTest1, brightnessTest2);
 			this.confidence = confidence;
 			this.modelRatio = modelRatio;
 			this.modelCount = modelCount;
-			this.brightnessTest1 = brightnessTest1;
-			this.brightnessTest2 = brightnessTest2;
 		}
 
-		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
-			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio, brightnessTest1, brightnessTest2);
+		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio) {
+			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio, original.brightnessTest1, original.brightnessTest2);
 		}
 
-		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
-			this(original, raw.getConfidence(), modelCount, modelRatio, brightnessTest1, brightnessTest2);
+		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio) {
+			this(original, raw.getConfidence(), modelCount, modelRatio);
 		}
 
 		/**
@@ -184,16 +176,6 @@ public class FaceRecognizer {
 		public float getModelRatio() {
 			return modelRatio;
 		}
-
-		/**
-		 * Get hints on brightness (light situation) of face.
-		 * @return -1 = really bad, 0 = suboptimal, 1 = optimal
-		 */
-		public int getBrightnessHint() {
-			return (brightnessTest1 < 0.5f || brightnessTest2 < 0.4f) ? -1 : // really bad light
-					(brightnessTest1 + brightnessTest2 < 2.0f ? 0 // suboptimal
-							: 1); // optimal
-		}
 	}
 
 	/**
@@ -203,7 +185,8 @@ public class FaceRecognizer {
 	 */
 	public List<Face> recognize(Bitmap input) {
 		final Set<String> savedFaces = storage.getNames();
-		final List<Pair<FaceDetector.Face, FaceScanner.Face>> faces = detector.process(input);
+		final List<Pair<FaceDetector.Face, FaceScanner.Face>> faces = detector.process(input,
+				true /* allow post processing, nobody will (should) use this class for registering faces */);
 		final List<Face> results = new ArrayList<>();
 
 		for (Pair<FaceDetector.Face, FaceScanner.Face> faceFacePair : faces) {
@@ -237,7 +220,7 @@ public class FaceRecognizer {
 				}
 			}
 
-			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut, scanned.compare(brightnessTest[0]), scanned.compare(brightnessTest[1])));
+			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut));
 		}
 		return results;
 	}

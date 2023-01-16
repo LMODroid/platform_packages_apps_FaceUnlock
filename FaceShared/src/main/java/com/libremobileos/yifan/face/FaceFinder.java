@@ -80,9 +80,10 @@ public class FaceFinder {
 	 * scanning the resulting found faces using {@link FaceScanner} after manually cropping the image.
 	 * Adds extra metadata (location) to {@link FaceScanner.Face} based on best effort basis.
 	 * @param input Bitmap to process.
+	 * @param allowPostprocessing Allow postprocessing to improve detection quality. Undesirable when registering faces.
 	 * @return {@link List} of {@link Pair}s of detection results from {@link FaceDetector} and {@link FaceScanner}
 	 */
-	public List<Pair<FaceDetector.Face, FaceScanner.Face>> process(Bitmap input) {
+	public List<Pair<FaceDetector.Face, FaceScanner.Face>> process(Bitmap input, boolean allowPostprocessing) {
 		FaceDetector.InputImage inputImage = detectorInputProcessor.process(input);
 
 		final List<FaceDetector.Face> faces = faceDetector.detectFaces(inputImage);
@@ -97,7 +98,7 @@ public class FaceFinder {
 				FaceScanner.InputImage faceBmp = scannerInputProcessor.process(face.getLocation());
 				if (faceBmp == null) continue;
 
-				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp);
+				final FaceScanner.Face scanned = faceScanner.detectFace(faceBmp, allowPostprocessing);
 				if (scanned == null) continue;
 
 				scanned.addData(face.getId(), face.getLocation());

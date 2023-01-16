@@ -20,7 +20,7 @@ public class EnrollActivity extends AppCompatActivity {
 		getLayoutInflater().inflate(R.layout.enroll_finish, f);
 		TextView t = f.findViewById(R.id.textView2);
 		if (getIntent() == null || !getIntent().hasExtra("faces")) {
-			t.setText("Click Next to start!");
+			t.setText(R.string.welcome_text);
 			findViewById(R.id.button).setOnClickListener(v -> {
 				startActivity(new Intent(this, ScanActivity.class));
 				finish();
@@ -38,10 +38,10 @@ public class EnrollActivity extends AppCompatActivity {
 		});
 		RemoteFaceServiceClient.connect(this, faced -> {
 			if (!faced.enroll(getIntent().getStringExtra("faces"))) {
-				runOnUiThread(() -> t.setText("oops something's wrong"));
+				runOnUiThread(() -> t.setText(R.string.register_failed));
 			} else {
 				runOnUiThread(() -> t.setText(
-						"Face Unlock will unlock your phone even if it's not your face. If you don't want that, stop reading and go earn some money to buy an iPhone. Thank you."));
+						R.string.finish_msg));
 			}
 		});
 	}
