@@ -65,7 +65,10 @@ public class MainActivity extends CameraActivity {
 		connectToCam(findViewById(R.id.viewFinder));
 
 		overlayView = findViewById(R.id.overlay);
-		overlayView.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+		overlayView.setOnClickListener(v -> {
+			startActivity(new Intent(this, SettingsActivity.class));
+			finish();
+		});
 	}
 
 	@OptIn(markerClass = ExperimentalGetImage.class)

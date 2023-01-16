@@ -4,9 +4,11 @@
 	<style name="Theme.FaceDetect.Base" parent="Theme.Material3.DynamicColors.DayNight">
 		<item name="colorPrimaryDark">@android:color/transparent</item> <!-- Status bar color -->
 		<item name="colorPrimaryVariant">@android:color/transparent</item>
+		<item name="alertDialogTheme">@style/Theme.FaceDetect.AlertDialog</item>
+	</style>
+	<style name="Theme.FaceDetect.NoActionBar" parent="Theme.FaceDetect.Base">
 		<item name="windowActionBar">false</item>
 		<item name="windowNoTitle">true</item>
-		<item name="alertDialogTheme">@style/Theme.FaceDetect.AlertDialog</item>
 	</style>
 	<style name="Theme.FaceDetect.AlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
 		<item name="dialogCornerRadius">28dp</item>

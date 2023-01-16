@@ -51,9 +51,6 @@ public class SettingsActivity extends AppCompatActivity {
 			SwitchPreferenceCompat se = findPreference("secure");
 			Preference rescan = findPreference("rescan");
 			assert sp != null; assert se != null; assert rescan != null;
-			sp.setEnabled(false);
-			se.setEnabled(false);
-			rescan.setEnabled(false);
 			RemoteFaceServiceClient.connect(getActivity(), faced -> {
 				boolean isEnrolled = faced.isEnrolled();
 				boolean isSecure = faced.isSecure();
@@ -75,18 +72,33 @@ public class SettingsActivity extends AppCompatActivity {
 										requireActivity().finish();
 									});
 								}
+								faced.setSecure(false);
 							}).start();
 							rescan.setEnabled(false);
+							se.setChecked(false);
 							se.setEnabled(false);
+							sp.setChecked(false);
 						}
 						return false;
 					});
+					rescan.setOnPreferenceClickListener(preference -> {
+						startActivity(new Intent(getActivity(), EnrollActivity.class));
+						requireActivity().finish();
+						return false;
+					});
 					se.setOnPreferenceChangeListener((preference, newValue) -> {
-						faced.setSecure((Boolean) newValue);
+						new Thread(() -> faced.setSecure((Boolean) newValue)).start();
+						se.setChecked((Boolean) newValue);
 						return false;
 					});
 				});
 			});
 		}
+	}
+
+	@Override
+	public void onBackPressed() {
+		super.onBackPressed();
+		finish();
 	}
 }

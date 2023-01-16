@@ -57,14 +57,10 @@ public class ScanActivity extends CameraActivity {
 		getLayoutInflater().inflate(R.layout.enroll_main, f);
 		connectToCam(f.findViewById(R.id.viewFinder));
 		overlayView = f.findViewById(R.id.overlay);
-		overlayView.setOnClickListener(v -> {
-				startActivity(new Intent(this, SettingsActivity.class));
-				finish();
-		});
 		subText = f.findViewById(R.id.textView);
 		subText.setText("Scan your face now");
 		findViewById(R.id.button2).setOnClickListener(v -> {
-			startActivity(new Intent(this, MainActivity.class));
+			startActivity(new Intent(this, SettingsActivity.class));
 			finish();
 		});
 		findViewById(R.id.button).setVisibility(View.GONE);

@@ -26,14 +26,14 @@ public class EnrollActivity extends AppCompatActivity {
 				finish();
 			});
 			findViewById(R.id.button2).setOnClickListener(v -> {
-				startActivity(new Intent(this, MainActivity.class));
+				startActivity(new Intent(this, SettingsActivity.class));
 				finish();
 			});
 			return;
 		}
 		findViewById(R.id.button2).setVisibility(View.GONE);
 		findViewById(R.id.button).setOnClickListener(v -> {
-			startActivity(new Intent(this, MainActivity.class));
+			startActivity(new Intent(this, SettingsActivity.class));
 			finish();
 		});
 		RemoteFaceServiceClient.connect(this, faced -> {
