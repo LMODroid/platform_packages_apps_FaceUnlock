@@ -16,6 +16,12 @@
 			app:title="Re-scan face"
 			android:summary="Improve detection by scanning your face in different poses and light"/>
 
+		<Preference
+			app:enabled="false"
+			app:key="startservice"
+			app:title="Start Service"
+			android:summary="Register hidl service"/>
+
 	</PreferenceCategory>
 
 	<PreferenceCategory app:title="Advanced settings">
