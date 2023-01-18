@@ -27,6 +27,7 @@ import androidx.annotation.OptIn;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageAnalysis;
 
+import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceRecognizer;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
@@ -92,8 +93,9 @@ public class MainActivity extends CameraActivity {
 		});
 
 		// Store registered Faces in Memory
-		//faceStorage = new VolatileFaceStorageBackend();
-		FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
+		//FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
+		//FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
+		FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(getFilesDir());
 
 		// Create AI-based face detection
 		faceRecognizer = FaceRecognizer.create(this,

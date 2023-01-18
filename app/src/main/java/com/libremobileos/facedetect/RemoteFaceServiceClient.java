@@ -3,6 +3,7 @@ package com.libremobileos.facedetect;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
@@ -14,7 +15,7 @@ public abstract class RemoteFaceServiceClient {
 		new Thread(() -> {
 			//TODO replace with remote thing
 			SharedPreferences prefs2 = ctx.getSharedPreferences("faces2", 0);
-			FaceStorageBackend s = new SharedPreferencesFaceStorageBackend(ctx.getSharedPreferences("faces", 0));
+			FaceStorageBackend s = new DirectoryFaceStorageBackend(ctx.getFilesDir());;
 			callback.accept(new RemoteFaceServiceClient() {
 				private static final String FACE = "Face";
 				private static final String SECURE = "secure";
