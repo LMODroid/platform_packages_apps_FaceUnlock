@@ -37,7 +37,7 @@ public class EnrollActivity extends AppCompatActivity {
 			finish();
 		});
 		RemoteFaceServiceClient.connect(this, faced -> {
-			if (!faced.enroll(getIntent().getStringExtra("faces"))) {
+			if (!faced.enroll(getIntent().getStringExtra("faces"), new byte[0])) {
 				runOnUiThread(() -> t.setText(R.string.register_failed));
 			} else {
 				runOnUiThread(() -> t.setText(

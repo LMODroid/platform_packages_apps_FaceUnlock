@@ -18,6 +18,8 @@ package com.libremobileos.yifan.face;
 
 import android.content.SharedPreferences;
 
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -36,17 +38,30 @@ public class SharedPreferencesFaceStorageBackend extends FaceStorageBackend {
 
 	@Override
 	protected Set<String> getNamesInternal() {
-		return prefs.getAll().keySet();
+		Set<String> allkeys = prefs.getAll().keySet();
+		Set<String> faceNames = new HashSet<>();
+		for (String key : allkeys) {
+			if (!key.endsWith("_hat")) {
+				faceNames.add(key);
+			}
+		}
+		return faceNames;
 	}
 
 	@Override
-	protected boolean registerInternal(String name, String data, boolean replace) {
-		return prefs.edit().putString(name, data).commit();
+	protected boolean registerInternal(String name, String data, String hat, boolean replace) {
+		return prefs.edit().putString(name, data).commit() &&
+				prefs.edit().putString(name + "_hat", hat).commit();
 	}
 
 	@Override
-	protected String getInternal(String name) {
+	protected String getFaceInternal(String name) {
 		return prefs.getString(name, null);
+	}
+
+	@Override
+	protected String getFaceHatInternal(String name) {
+		return prefs.getString(name + "_hat", null);
 	}
 
 	@Override

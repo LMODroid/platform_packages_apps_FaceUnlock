@@ -16,8 +16,16 @@
 
 package com.libremobileos.facedetect;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.os.UserHandle;
 import android.util.Pair;
 import android.util.Size;
 import android.view.View;
@@ -32,7 +40,9 @@ import com.libremobileos.yifan.face.FaceFinder;
 import com.libremobileos.yifan.face.FaceScanner;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import android.hardware.face.FaceManager;
 
 public class ScanActivity extends CameraActivity {
 
@@ -46,6 +56,41 @@ public class ScanActivity extends CameraActivity {
 	private TextView subText;
 
 	private boolean computingDetection = false;
+
+	private IFaceDetectService service;
+
+	protected byte[] mToken;
+	protected int mUserId;
+	protected int mSensorId;
+	protected long mChallenge;
+	protected boolean mFromSettingsSummary;
+
+	protected CancellationSignal mEnrollmentCancel;
+
+	public static final String EXTRA_KEY_CHALLENGE_TOKEN = "hw_auth_token";
+	public static final String EXTRA_FROM_SETTINGS_SUMMARY = "from_settings_summary";
+	public static final String EXTRA_KEY_SENSOR_ID = "sensor_id";
+	public static final String EXTRA_KEY_CHALLENGE = "challenge";
+	public static final String EXTRA_USER_ID = "user_id";
+	public static final String EXTRA_KEY_REQUIRE_VISION = "accessibility_vision";
+	public static final String EXTRA_KEY_REQUIRE_DIVERSITY = "accessibility_diversity";
+
+	private final ServiceConnection connection = new ServiceConnection() {
+		@Override
+		public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+			service = IFaceDetectService.Stub.asInterface(iBinder);
+		}
+
+		@Override
+		public void onServiceDisconnected(ComponentName componentName) {}
+	};
+
+	@Override
+	protected void onStart() {
+		super.onStart();
+		Intent intent = new Intent(this, FaceDetectService.class);
+		bindService(intent, connection, Context.BIND_AUTO_CREATE);
+	}
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,7 +108,52 @@ public class ScanActivity extends CameraActivity {
 			finish();
 		});
 		findViewById(R.id.button).setVisibility(View.GONE);
+		mToken = getIntent().getByteArrayExtra(EXTRA_KEY_CHALLENGE_TOKEN);
+		mChallenge = getIntent().getLongExtra(EXTRA_KEY_CHALLENGE, -1L);
+		mSensorId = getIntent().getIntExtra(EXTRA_KEY_SENSOR_ID, -1);
+		mFromSettingsSummary = getIntent().getBooleanExtra(EXTRA_FROM_SETTINGS_SUMMARY, false);
+		mUserId = getIntent().getIntExtra(EXTRA_USER_ID, 0);
+
+		if (mToken != null) {
+			ArrayList<Integer> disabledFeatures = new ArrayList<>();
+			if (!getIntent().getBooleanExtra(EXTRA_KEY_REQUIRE_DIVERSITY, true)) {
+				disabledFeatures.add(FaceManager.FEATURE_REQUIRE_REQUIRE_DIVERSITY);
+			}
+			if (!getIntent().getBooleanExtra(EXTRA_KEY_REQUIRE_VISION, true)) {
+				disabledFeatures.add(FaceManager.FEATURE_REQUIRE_ATTENTION);
+			}
+			final int[] disabledFeaturesArr = new int[disabledFeatures.size()];
+			for (int i = 0; i < disabledFeatures.size(); i++) {
+				disabledFeaturesArr[i] = disabledFeatures.get(i);
+			}
+			mEnrollmentCancel = new CancellationSignal();
+			FaceManager faceManager = getFaceManagerOrNull(this);
+			faceManager.enroll(mUserId, mToken, mEnrollmentCancel, mEnrollmentCallback, disabledFeaturesArr);
+		}
 	}
+	public static FaceManager getFaceManagerOrNull(Context context) {
+		if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_FACE)) {
+			return (FaceManager) context.getSystemService("face");
+		} else {
+			return null;
+		}
+	}
+
+	private FaceManager.EnrollmentCallback mEnrollmentCallback
+			= new FaceManager.EnrollmentCallback() {
+
+		@Override
+		public void onEnrollmentProgress(int remaining) {
+		}
+
+		@Override
+		public void onEnrollmentHelp(int helpMsgId, CharSequence helpString) {
+		}
+
+		@Override
+		public void onEnrollmentError(int errMsgId, CharSequence errString) {
+		}
+	};
 
 	@Override
 	protected void setupFaceRecognizer(final Size bitmapSize) {
@@ -132,9 +222,46 @@ public class ScanActivity extends CameraActivity {
 		}
 
 		if (faces.size() == 10) {
-			startActivity(new Intent(this, EnrollActivity.class).putExtra("faces",
-					FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new))));
-			finish();
+			String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
+			if (mToken != null) {
+				RemoteFaceServiceClient.connect(this, faced -> {
+					try {
+						if (!faced.enroll(encodedFaces, mToken)) {
+							service.error(4); // NOT_ENROLLED
+						} else {
+							service.enrollResult(0);
+						}
+						final Intent intent = new Intent();
+						ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
+						intent.setComponent(componentName);
+						intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT
+								| Intent.FLAG_ACTIVITY_CLEAR_TOP
+								| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+						intent.putExtra(EXTRA_KEY_CHALLENGE_TOKEN, mToken);
+						intent.putExtra(EXTRA_KEY_SENSOR_ID, mSensorId);
+						intent.putExtra(EXTRA_KEY_CHALLENGE, mChallenge);
+						intent.putExtra(EXTRA_FROM_SETTINGS_SUMMARY, mFromSettingsSummary);
+						if (mUserId != 0) {
+							intent.putExtra(EXTRA_USER_ID, mUserId);
+						}
+						startActivity(intent);
+
+						finish();
+					} catch (RemoteException e) {
+						e.printStackTrace();
+					}
+				});
+			} else {
+				startActivity(new Intent(this, EnrollActivity.class).putExtra("faces",encodedFaces));
+			}
+		} else {
+			if (mToken != null) {
+				try {
+					service.enrollResult(10 - faces.size());
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 		// Clean up

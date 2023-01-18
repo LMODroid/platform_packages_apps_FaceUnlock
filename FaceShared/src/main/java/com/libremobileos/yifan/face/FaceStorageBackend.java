@@ -37,7 +37,8 @@ public abstract class FaceStorageBackend {
 	private static final Base64.Decoder decoder = Base64.getUrlDecoder();
 
 	/* package-private */ Set<String> cachedNames = null;
-	/* package-private */ HashMap<String, float[][]> cachedData = null;
+	/* package-private */ HashMap<String, float[][]> cachedFaceData = null;
+	/* package-private */ HashMap<String, byte[]> cachedHatData = null;
 
 	public FaceStorageBackend() {
 		flushCache();
@@ -57,69 +58,75 @@ public abstract class FaceStorageBackend {
 	 * Register/store new face.
 	 * @param rawname Name of the face, needs to be unique.
 	 * @param alldata Face detection model data to store.
+	 * @param hat Hardware Authentication Token data to store.
 	 * @param replace Allow replacing an already registered face (based on name). If false and it's still attempted, the method returns false and does nothing.
 	 * @return If registering was successful.
-	 * @see #register(String, float[][])
-	 * @see #register(String, float[])
+	 * @see #register(String, float[][], byte[])
+	 * @see #register(String, float[], byte[])
 	 */
-	public boolean register(String rawname, float[][] alldata, boolean replace) {
+	public boolean register(String rawname, float[][] alldata, byte[] hat, boolean replace) {
 		String name = encoder.encodeToString(rawname.getBytes(StandardCharsets.UTF_8));
 		boolean duplicate = getNamesInternal().contains(name);
 		if (duplicate && !replace) {
 			return false;
 		}
+		String hatString = encoder.encodeToString(hat);
 		if (cachedNames != null) {
 			cachedNames.add(rawname);
-			cachedData.put(rawname, alldata);
+			cachedFaceData.put(rawname, alldata);
+			cachedHatData.put(rawname, hat);
 		} else {
 			flushCache();
 		}
-		return registerInternal(name, FaceDataEncoder.encode(alldata), duplicate);
+		return registerInternal(name, FaceDataEncoder.encode(alldata), hatString, duplicate);
 	}
 
 	/**
-	 * Register/store new face. Calls {@link #register(String, float[][], boolean)} and does not allow replacements.
+	 * Register/store new face. Calls {@link #register(String, float[][], byte[], boolean)} and does not allow replacements.
 	 * @param rawname Name of the face, needs to be unique.
 	 * @param alldata Face detection model data to store.
+	 * @param hat Hardware Authentication Token data to store.
 	 * @return If registering was successful.
-	 * @see #register(String, float[][], boolean)
-	 * @see #register(String, float[])
+	 * @see #register(String, float[][], byte[], boolean)
+	 * @see #register(String, float[], byte[])
 	 */
-	public boolean register(String rawname, float[][] alldata) {
-		return register(rawname, alldata, false);
+	public boolean register(String rawname, float[][] alldata, byte[] hat) {
+		return register(rawname, alldata, hat, false);
 	}
 
 	/**
-	 * Store 1D face model by converting it to 2D and then calling {@link #register(String, float[][])}.<br>
+	 * Store 1D face model by converting it to 2D and then calling {@link #register(String, float[][], byte[])}.<br>
 	 * Implementation looks like this: <code>return register(rawname, new float[][] { alldata })</code>).<br>
 	 * @param rawname Name of the face, needs to be unique.
 	 * @param alldata 1D face detection model data to store.
+	 * @param hat Hardware Authentication Token data to store.
 	 * @return If registering was successful.
-	 * @see #register(String, float[][], boolean)
-	 * @see #register(String, float[][])
+	 * @see #register(String, float[][], byte[], boolean)
+	 * @see #register(String, float[][], byte[])
 	 */
-	public boolean register(String rawname, float[] alldata) {
-		return register(rawname, new float[][] { alldata });
+	public boolean register(String rawname, float[] alldata, byte[] hat) {
+		return register(rawname, new float[][] { alldata }, hat);
 	}
 
 	/**
 	 * Adds 1D face model to existing 2D face model to improve accuracy.
 	 * @param rawname Name of the face, needs to be unique.
 	 * @param alldata 1D face detection model data to store
+	 * @param hat Hardware Authentication Token data to store.
 	 * @param add If the face doesn't already exist, can we create it?
 	 * @return If registering was successful.
 	 */
-	public boolean extendRegistered(String rawname, float[] alldata, boolean add) {
+	public boolean extendRegistered(String rawname, float[] alldata, byte[] hat, boolean add) {
 		if (!getNames().contains(rawname)) {
 			if (!add)
 				return false;
-			return register(rawname, alldata);
+			return register(rawname, alldata, hat);
 		}
-		float[][] array1 = get(rawname);
+		float[][] array1 = getFace(rawname);
 		float[][] combinedArray = new float[array1.length + 1][];
 		System.arraycopy(array1, 0, combinedArray, 0, array1.length);
 		combinedArray[array1.length] = alldata;
-		return register(rawname, combinedArray, true);
+		return register(rawname, combinedArray, hat, true);
 	}
 
 	/**
@@ -127,11 +134,19 @@ public abstract class FaceStorageBackend {
 	 * @param name The name of the face to load.
 	 * @return The face model.
 	 */
-	public float[][] get(String name) {
-		float[][] f = getCached(name);
+	public float[][] getFace(String name) {
+		float[][] f = getFaceCached(name);
 		if (f != null) return f;
-		f = FaceDataEncoder.decode(getInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8))));
-		cachedData.put(name, f);
+		f = FaceDataEncoder.decode(getFaceInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8))));
+		cachedFaceData.put(name, f);
+		return f;
+	}
+
+	public byte[] getFaceHat(String name) {
+		byte[] f = getFaceHatCached(name);
+		if (f != null) return f;
+		f = decoder.decode(getFaceHatInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8))));
+		cachedHatData.put(name, f);
 		return f;
 	}
 
@@ -143,7 +158,8 @@ public abstract class FaceStorageBackend {
 	@SuppressWarnings("unused")
 	public boolean delete(String name) {
 		cachedNames.remove(name);
-		cachedData.remove(name);
+		cachedFaceData.remove(name);
+		cachedHatData.remove(name);
 		return deleteInternal(encoder.encodeToString(name.getBytes(StandardCharsets.UTF_8)));
 	}
 
@@ -159,13 +175,19 @@ public abstract class FaceStorageBackend {
 	 * @param duplicate Only true if we are adding a duplicate and want to replace the saved one.
 	 * @return If registering was successful.
 	 */
-	protected abstract boolean registerInternal(String name, String data, boolean duplicate);
+	protected abstract boolean registerInternal(String name, String data, String hat, boolean duplicate);
 	/**
 	 * Load 2D face model from storage.
 	 * @param name The name of the face to load.
 	 * @return The face model.
 	 */
-	protected abstract String getInternal(String name);
+	protected abstract String getFaceInternal(String name);
+	/**
+	 * Load Hardware Authentication Token data from storage.
+	 * @param name The name of the face to load.
+	 * @return The face model.
+	 */
+	protected abstract String getFaceHatInternal(String name);
 	/**
 	 * Delete all references to a face.
 	 * @param name The face to delete.
@@ -176,11 +198,15 @@ public abstract class FaceStorageBackend {
 	/* package-private */ @Nullable Set<String> getNamesCached() {
 		return cachedNames;
 	}
-	/* package-private */ @Nullable float[][] getCached(String name) {
-		return cachedData.get(name);
+	/* package-private */ @Nullable float[][] getFaceCached(String name) {
+		return cachedFaceData.get(name);
+	}
+	/* package-private */ @Nullable byte[] getFaceHatCached(String name) {
+		return cachedHatData.get(name);
 	}
 	private void flushCache() {
 		cachedNames = null;
-		cachedData = new HashMap<>();
+		cachedFaceData = new HashMap<>();
+		cachedHatData = new HashMap<>();
 	}
 }

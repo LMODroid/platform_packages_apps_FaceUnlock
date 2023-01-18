@@ -41,8 +41,8 @@ public abstract class RemoteFaceServiceClient {
 				}
 
 				@Override
-				public boolean enroll(String data) {
-					return s.register(FACE, FaceDataEncoder.decode(data), true);
+				public boolean enroll(String data, byte[] hat) {
+					return s.register(FACE, FaceDataEncoder.decode(data), hat, true);
 				}
 			});
 		}).start();
@@ -52,9 +52,9 @@ public abstract class RemoteFaceServiceClient {
 	public abstract boolean isSecure();
 	public abstract void setSecure(boolean secure);
 	public abstract boolean unenroll();
-	public abstract boolean enroll(String data);
+	public abstract boolean enroll(String data, byte[] hat);
 
-	public boolean enroll(float[][] data) {
-		return enroll(FaceDataEncoder.encode(data));
+	public boolean enroll(float[][] data, byte[] hat) {
+		return enroll(FaceDataEncoder.encode(data), hat);
 	}
 }

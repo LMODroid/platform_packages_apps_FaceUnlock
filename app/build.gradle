@@ -40,6 +40,11 @@ android {
 			}
 		}
 	}
+	sourceSets {
+		main {
+			aidl.srcDirs = ['src/main/java']
+		}
+	}
 }
 
 dependencies {

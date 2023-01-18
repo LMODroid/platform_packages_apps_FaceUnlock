@@ -9,6 +9,8 @@
 
 	<uses-permission android:name="android.permission.CAMERA" />
 
+	<uses-permission android:name="android.permission.MANAGE_BIOMETRIC" />
+
 	<application
 		android:allowBackup="true"
 		android:dataExtractionRules="@xml/data_extraction_rules"
@@ -26,6 +28,9 @@
 			android:name=".ScanActivity"
 			android:theme="@style/Theme.FaceDetect.NoActionBar"
 			android:exported="false"/>
+		<service
+			android:name=".FaceDetectService"
+			android:exported="true" />
 		<activity
 			android:name=".SettingsActivity"
 			android:exported="false"/>

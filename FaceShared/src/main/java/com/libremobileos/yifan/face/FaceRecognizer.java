@@ -136,20 +136,22 @@ public class FaceRecognizer {
 		private final float confidence;
 		private final int modelCount;
 		private final float modelRatio;
+		private final byte[] hat;
 
-		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2) {
+		/* package-private */ Face(String id, String title, Float distance, Float confidence, RectF location, Bitmap crop, float[] extra, int modelCount, float modelRatio, float brightnessTest1, float brightnessTest2, byte[] hat) {
 			super(id, title, distance, location, crop, extra, brightnessTest1, brightnessTest2);
 			this.confidence = confidence;
 			this.modelRatio = modelRatio;
 			this.modelCount = modelCount;
+			this.hat = hat;
 		}
 
-		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio) {
-			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio, original.brightnessTest1, original.brightnessTest2);
+		/* package-private */ Face(FaceScanner.Face original, Float confidence, int modelCount, float modelRatio, byte[] hat) {
+			this(original.getId(), original.getTitle(), original.getDistance(), confidence, original.getLocation(), original.getCrop(), original.getExtra(), modelCount, modelRatio, original.brightnessTest1, original.brightnessTest2, hat);
 		}
 
-		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio) {
-			this(original, raw.getConfidence(), modelCount, modelRatio);
+		/* package-private */ Face(FaceDetector.Face raw, FaceScanner.Face original, int modelCount, float modelRatio, byte[] hat) {
+			this(original, raw.getConfidence(), modelCount, modelRatio, hat);
 		}
 
 		/**
@@ -166,6 +168,10 @@ public class FaceRecognizer {
 		 */
 		public int getModelCount() {
 			return modelCount;
+		}
+
+		public byte[] getHat() {
+			return hat;
 		}
 
 		/**
@@ -195,8 +201,10 @@ public class FaceRecognizer {
 			// Go through all saved faces and compare them with our scanned face
 			int matchingModelsOut = 0;
 			float modelRatioOut = 0;
+			byte[] hatData = null;
 			for (String savedName : savedFaces) {
-				float[][] rawData = storage.get(savedName);
+				float[][] rawData = storage.getFace(savedName);
+				hatData = storage.getFaceHat(savedName);
 				int matchingModels = 0;
 				float finalDistance = Float.MAX_VALUE;
 				// Go through all saved models for one face
@@ -220,7 +228,7 @@ public class FaceRecognizer {
 				}
 			}
 
-			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut));
+			results.add(new Face(found, scanned, matchingModelsOut, modelRatioOut, hatData));
 		}
 		return results;
 	}
