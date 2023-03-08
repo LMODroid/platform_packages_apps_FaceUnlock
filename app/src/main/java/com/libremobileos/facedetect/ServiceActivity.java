@@ -113,7 +113,9 @@ public class ServiceActivity extends AppCompatActivity {
 			if (DEBUG)
 				Log.d(TAG, "enroll");
 
-			return Status.NOT_ENROLLED;
+			mCallback.onEnrollResult(kDeviceId, 0, 0, 0);
+
+			return Status.OK;
 		}
 
 		@Override
