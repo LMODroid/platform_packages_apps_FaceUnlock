@@ -23,10 +23,6 @@
 			android:theme="@style/Theme.FaceDetect.NoActionBar"
 			android:exported="false"/>
 		<activity
-			android:name=".ServiceActivity"
-			android:theme="@style/Theme.FaceDetect.NoActionBar"
-			android:exported="false" />
-		<activity
 			android:name=".SettingsActivity"
 			android:exported="false"/>
 		<activity

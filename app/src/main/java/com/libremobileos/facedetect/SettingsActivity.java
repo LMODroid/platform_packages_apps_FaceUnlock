@@ -49,7 +49,6 @@ public class SettingsActivity extends AppCompatActivity {
 			applyMaterial3(getPreferenceScreen());
 			SwitchPreferenceCompat sp = findPreference("enable");
 			SwitchPreferenceCompat se = findPreference("secure");
-			Preference ss = findPreference("startservice");
 			Preference rescan = findPreference("rescan");
 			assert sp != null; assert se != null; assert rescan != null;
 			RemoteFaceServiceClient.connect(getActivity(), faced -> {
@@ -61,7 +60,6 @@ public class SettingsActivity extends AppCompatActivity {
 					se.setChecked(isEnrolled && isSecure);
 					sp.setChecked(isEnrolled);
 					sp.setEnabled(true);
-					ss.setEnabled(true);
 					sp.setOnPreferenceChangeListener((preference, newValue) -> {
 						if ((Boolean) newValue) {
 							startActivity(new Intent(getActivity(), EnrollActivity.class));
@@ -91,11 +89,6 @@ public class SettingsActivity extends AppCompatActivity {
 					se.setOnPreferenceChangeListener((preference, newValue) -> {
 						new Thread(() -> faced.setSecure((Boolean) newValue)).start();
 						se.setChecked((Boolean) newValue);
-						return false;
-					});
-					ss.setOnPreferenceClickListener(preference -> {
-						startActivity(new Intent(getActivity(), ServiceActivity.class));
-						requireActivity().finish();
 						return false;
 					});
 				});
