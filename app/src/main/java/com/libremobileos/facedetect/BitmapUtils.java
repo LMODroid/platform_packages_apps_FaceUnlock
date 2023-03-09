@@ -29,8 +29,6 @@ import android.media.Image;
 import android.media.Image.Plane;
 import android.util.Log;
 import androidx.annotation.Nullable;
-import androidx.camera.core.ExperimentalGetImage;
-import androidx.camera.core.ImageProxy;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -112,22 +110,6 @@ public class BitmapUtils {
 			Log.e("VisionProcessorBase", "Error: " + e.getMessage());
 		}
 		return null;
-	}
-
-	/** Converts a YUV_420_888 image from CameraX API to a bitmap. */
-	@Nullable
-	@ExperimentalGetImage
-	public static Bitmap getBitmap(ImageProxy image) {
-		FrameMetadata frameMetadata =
-				new FrameMetadata.Builder()
-						.setWidth(image.getWidth())
-						.setHeight(image.getHeight())
-						.setRotation(image.getImageInfo().getRotationDegrees())
-						.build();
-
-		ByteBuffer nv21Buffer =
-				yuv420ThreePlanesToNV21(Objects.requireNonNull(image.getImage()).getPlanes(), image.getWidth(), image.getHeight());
-		return getBitmap(nv21Buffer, frameMetadata);
 	}
 
 	/** Rotates a bitmap if it is converted from a bytebuffer. */

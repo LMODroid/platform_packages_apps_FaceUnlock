@@ -19,14 +19,12 @@ package com.libremobileos.facedetect;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Pair;
+import android.util.Size;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
-import androidx.camera.core.ExperimentalGetImage;
-import androidx.camera.core.ImageAnalysis;
 
 import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceDetector;
@@ -47,6 +45,8 @@ public class ScanActivity extends CameraActivity {
 	private final List<FaceScanner.Face> faces = new ArrayList<>();
 	private TextView subText;
 
+	private boolean computingDetection = false;
+
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		// Initialize basic views
@@ -65,70 +65,79 @@ public class ScanActivity extends CameraActivity {
 		findViewById(R.id.button).setVisibility(View.GONE);
 	}
 
-	@OptIn(markerClass = ExperimentalGetImage.class)
-	protected void onSetCameraCallback(ImageAnalysis imageAnalysis) {
-		imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
-			if (faces.size() == 10) {
-				imageProxy.close();
-				return;
-			}
-			// Convert CameraX Image to Bitmap and process it
-			// Return list of detected faces
-			List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceRecognizer.process(BitmapUtils.getBitmap(imageProxy), false);
-
-			if (data.size() > 1) {
-				if (lastAdd == -1) { // last frame had two faces too
-					subText.setText(R.string.found_2_faces);
-				}
-				lastAdd = -1;
-				imageProxy.close();
-				return;
-			} else if (lastAdd == -1) {
-				lastAdd = System.currentTimeMillis();
-			}
-			if (data.size() == 0) {
-				if (lastAdd == -2) { // last frame had 0 faces too
-					subText.setText(R.string.cant_find_face);
-				}
-				lastAdd = -2;
-				imageProxy.close();
-				return;
-			} else if (lastAdd == -2) {
-				lastAdd = System.currentTimeMillis();
-			}
-
-			Pair<FaceDetector.Face, FaceScanner.Face> face = data.get(0);
-
-			// Do we want to add a new face?
-			if (lastAdd + 1000 < System.currentTimeMillis()) {
-				lastAdd = System.currentTimeMillis();
-				if (face.second.getBrightnessHint() < 1) {
-					subText.setText(R.string.cant_scan_face);
-					imageProxy.close();
-					return;
-				} else {
-					subText.setText(R.string.scan_face_now);
-				}
-				faces.add(face.second);
-				overlayView.setPercentage(faces.size() * 10);
-			}
-
-			if (faces.size() == 10) {
-				startActivity(new Intent(this, EnrollActivity.class).putExtra("faces",
-						FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new))));
-				finish();
-			}
-
-			// Clean up
-			imageProxy.close();
-		});
-
+	@Override
+	protected void setupFaceRecognizer(final Size bitmapSize) {
 		// Create AI-based face detection
 		faceRecognizer = FaceFinder.create(this,
 				0.6f, /* minimum confidence to consider object as face */
-				width, /* bitmap width */
-				height, /* bitmap height */
-				0 /* CameraX rotates the image for us, so we chose to IGNORE sensorRotation altogether */
+				bitmapSize.getWidth(), /* bitmap width */
+				bitmapSize.getHeight(), /* bitmap height */
+				0 /* We rotates the image, so IGNORE sensorRotation altogether */
 		);
+	}
+
+	@Override
+	protected void processImage() {
+		// No mutex needed as this method is not reentrant.
+		if (computingDetection) {
+			readyForNextImage();
+			return;
+		}
+		computingDetection = true;
+
+		if (faces.size() == 10) {
+			readyForNextImage();
+			return;
+		}
+
+		// Return list of detected faces
+		List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceRecognizer.process(getCroppedBitmap(), false);
+		computingDetection = false;
+
+		if (data.size() > 1) {
+			if (lastAdd == -1) { // last frame had two faces too
+				subText.setText(R.string.found_2_faces);
+			}
+			lastAdd = -1;
+			readyForNextImage();
+			return;
+		} else if (lastAdd == -1) {
+			lastAdd = System.currentTimeMillis();
+		}
+		if (data.size() == 0) {
+			if (lastAdd == -2) { // last frame had 0 faces too
+				subText.setText(R.string.cant_find_face);
+			}
+			lastAdd = -2;
+			readyForNextImage();
+			return;
+		} else if (lastAdd == -2) {
+			lastAdd = System.currentTimeMillis();
+		}
+
+		Pair<FaceDetector.Face, FaceScanner.Face> face = data.get(0);
+
+		// Do we want to add a new face?
+		if (lastAdd + 1000 < System.currentTimeMillis()) {
+			lastAdd = System.currentTimeMillis();
+			if (face.second.getBrightnessHint() < 1) {
+				subText.setText(R.string.cant_scan_face);
+				readyForNextImage();
+				return;
+			} else {
+				subText.setText(R.string.scan_face_now);
+			}
+			faces.add(face.second);
+			overlayView.setPercentage(faces.size() * 10);
+		}
+
+		if (faces.size() == 10) {
+			startActivity(new Intent(this, EnrollActivity.class).putExtra("faces",
+					FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new))));
+			finish();
+		}
+
+		// Clean up
+		readyForNextImage();
 	}
 }
