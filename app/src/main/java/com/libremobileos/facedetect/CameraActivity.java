@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.RectF;
@@ -54,32 +53,25 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 	 */
 	private static final int MINIMUM_PREVIEW_SIZE = 320;
 
-	protected AutoFitTextureView previewView;
+	private AutoFitTextureView previewView;
 	private Handler mBackgroundHandler;
 	private HandlerThread mBackgroundThread;
-	private String cameraId;
-	protected CameraDevice cameraDevice;
-	protected CameraCaptureSession cameraCaptureSessions;
-	protected CaptureRequest captureRequest;
-	protected CaptureRequest.Builder captureRequestBuilder;
+	private CameraDevice cameraDevice;
+	private CameraCaptureSession cameraCaptureSessions;
+	private CaptureRequest captureRequest;
+	private CaptureRequest.Builder captureRequestBuilder;
 	private ImageReader previewReader;
-	private byte[][] yuvBytes = new byte[3][];
+	private final byte[][] yuvBytes = new byte[3][];
 	private int[] rgbBytes = null;
 	private boolean isProcessingFrame = false;
 	private int yRowStride;
 	private Runnable postInferenceCallback;
 	private Runnable imageConverter;
-	private Integer sensorOrientation;
 	private Bitmap rgbFrameBitmap = null;
-	private Bitmap croppedBitmap = null;
-	private Bitmap cropCopyBitmap = null;
-	private Matrix frameToCropTransform;
-	private Matrix cropToFrameTransform;
-	private static final boolean MAINTAIN_ASPECT = false;
-
+	private int imageOrientation;
+	private Size previewSize;
 
 	protected final Size desiredInputSize = new Size(640, 480);
-	private Size previewSize;
 	// The calculated actual processing width & height
 	protected int width, height;
 
@@ -94,7 +86,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		previewView.setSurfaceTextureListener(textureListener);
 	}
 
-	TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+	private final TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
 		@Override
 		public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
 			//open your camera here
@@ -137,13 +129,13 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		}
 	};
 
-	protected void startBackgroundThread() {
+	private void startBackgroundThread() {
 		mBackgroundThread = new HandlerThread("Camera Background");
 		mBackgroundThread.start();
 		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 	}
 
-	protected void stopBackgroundThread() {
+	private void stopBackgroundThread() {
 		mBackgroundThread.quitSafely();
 		try {
 			mBackgroundThread.join();
@@ -154,7 +146,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		}
 	}
 
-	protected void createCameraPreview() {
+	private void createCameraPreview() {
 		try {
 			SurfaceTexture texture = previewView.getSurfaceTexture();
 			assert texture != null;
@@ -242,7 +234,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 	}
 
 	/** Compares two {@code Size}s based on their areas. */
-	static class CompareSizesByArea implements Comparator<Size> {
+	private static class CompareSizesByArea implements Comparator<Size> {
 		@Override
 		public int compare(final Size lhs, final Size rhs) {
 			// We cast here to ensure the multiplications won't overflow
@@ -260,14 +252,14 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 	 * @param height The minimum desired height
 	 * @return The optimal {@code Size}, or an arbitrary one if none were big enough
 	 */
-	protected static Size chooseOptimalSize(final Size[] choices, final int width, final int height) {
+	private static Size chooseOptimalSize(final Size[] choices, final int width, final int height) {
 		final int minSize = Math.max(Math.min(width, height), MINIMUM_PREVIEW_SIZE);
 		final Size desiredSize = new Size(width, height);
 
 		// Collect the supported resolutions that are at least as big as the preview Surface
 		boolean exactSizeFound = false;
-		final List<Size> bigEnough = new ArrayList<Size>();
-		final List<Size> tooSmall = new ArrayList<Size>();
+		final List<Size> bigEnough = new ArrayList<>();
+		final List<Size> tooSmall = new ArrayList<>();
 		for (final Size option : choices) {
 			if (option.equals(desiredSize)) {
 				// Set the size but don't return yet so that remaining sizes will still be logged.
@@ -305,7 +297,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
 		Log.e(TAG, "is camera open");
 		try {
-			cameraId = manager.getCameraIdList()[0];
+			String cameraId = manager.getCameraIdList()[0];
 			for (String id : manager.getCameraIdList()) {
 				CameraCharacteristics characteristics = manager.getCameraCharacteristics(id);
 				if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
@@ -315,7 +307,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			}
 			CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
 			StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-			sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+			Integer sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
 			assert map != null;
 
@@ -337,31 +329,10 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 				previewView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
 			}
 
-			int imageOrientation = sensorOrientation + getScreenOrientation();
+			imageOrientation = sensorOrientation + getScreenOrientation();
 			rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-			int targetW, targetH;
-			if (imageOrientation == 90 || imageOrientation == 270) {
-				targetH = width;
-				targetW = height;
-			}
-			else {
-				targetW = width;
-				targetH = height;
-			}
-			int cropW = (int) (targetW / 2.0);
-			int cropH = (int) (targetH / 2.0);
 
-			croppedBitmap = Bitmap.createBitmap(cropW, cropH, Bitmap.Config.ARGB_8888);
-
-			frameToCropTransform =
-					ImageUtils.getTransformationMatrix(
-							width, height,
-							cropW, cropH,
-							imageOrientation, MAINTAIN_ASPECT);
-			cropToFrameTransform = new Matrix();
-			frameToCropTransform.invert(cropToFrameTransform);
-
-			setupFaceRecognizer(new Size(cropW, cropH));
+			setupFaceRecognizer(new Size(width, height), imageOrientation);
 
 			// Add permission for camera and let user grant the permission
 			if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -373,6 +344,10 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			e.printStackTrace();
 		}
 		Log.e(TAG, "openCamera X");
+	}
+
+	protected int getImageRotation() {
+		return imageOrientation;
 	}
 
 	private void closeCamera() {
@@ -401,7 +376,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		super.onPause();
 	}
 
-	protected void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
+	private void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
 		// Because of the variable row stride it's not possible to know in
 		// advance the actual necessary dimensions of the yuv planes.
 		for (int i = 0; i < planes.length; ++i) {
@@ -414,16 +389,16 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		}
 	}
 
-	protected int[] getRgbBytes() {
+	private int[] getRgbBytes() {
 		imageConverter.run();
 		return rgbBytes;
 	}
 
-	protected Bitmap getCroppedBitmap() {
-		return croppedBitmap;
+	protected Bitmap getBitmap() {
+		return rgbFrameBitmap;
 	}
 
-	protected int getScreenOrientation() {
+	private int getScreenOrientation() {
 		switch (getWindowManager().getDefaultDisplay().getRotation()) {
 			case Surface.ROTATION_270:
 				return 270;
@@ -470,36 +445,26 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			final int uvPixelStride = planes[1].getPixelStride();
 
 			imageConverter =
-					new Runnable() {
-						@Override
-						public void run() {
-							ImageUtils.convertYUV420ToARGB8888(
-									yuvBytes[0],
-									yuvBytes[1],
-									yuvBytes[2],
-									previewWidth,
-									previewHeight,
-									yRowStride,
-									uvRowStride,
-									uvPixelStride,
-									rgbBytes);
-						}
-					};
+					() -> ImageUtils.convertYUV420ToARGB8888(
+							yuvBytes[0],
+							yuvBytes[1],
+							yuvBytes[2],
+							previewWidth,
+							previewHeight,
+							yRowStride,
+							uvRowStride,
+							uvPixelStride,
+							rgbBytes);
 
 			postInferenceCallback =
-					new Runnable() {
-						@Override
-						public void run() {
-							image.close();
-							isProcessingFrame = false;
-						}
+					() -> {
+						image.close();
+						isProcessingFrame = false;
 					};
 
 			rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
-			final Canvas canvas = new Canvas(croppedBitmap);
-			canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
 
-			runOnUiThread(() -> processImage());
+			runOnUiThread(this::processImage);
 		} catch (final Exception e) {
 			Log.e(TAG, "Exception!", e);
 			Trace.endSection();
@@ -508,7 +473,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		Trace.endSection();
 	}
 
-	protected abstract void setupFaceRecognizer(final Size bitmapSize);
+	protected abstract void setupFaceRecognizer(final Size bitmapSize, final int imageRotation);
 
 	protected abstract void processImage();
 

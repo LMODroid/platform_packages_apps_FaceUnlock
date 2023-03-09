@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,7 +89,6 @@ public class FaceScanner {
 	 * @see InputImage
 	 */
 	public static class InputImageProcessor {
-		private final int sensorOrientation;
 		private final Bitmap portraitBmp;
 		private final Matrix transform;
 
@@ -99,7 +98,6 @@ public class FaceScanner {
 		 * @param sensorOrientation rotation if the image should be rotated, or 0.
 		 */
 		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
-			this.sensorOrientation = sensorOrientation;
 			Bitmap portraitBmp = Bitmap.createBitmap(
 					(sensorOrientation % 180) == 90 ? rawImage.getHeight() : rawImage.getWidth(),
 					(sensorOrientation % 180) == 90 ? rawImage.getWidth() : rawImage.getHeight(), Bitmap.Config.ARGB_8888);
@@ -108,8 +106,17 @@ public class FaceScanner {
 					rawImage.getHeight(),
 					rawImage.getWidth(),
 					rawImage.getHeight(),
-					sensorOrientation,
+					0,
 					MAINTAIN_ASPECT);
+			if (sensorOrientation != 0) {
+				Matrix myRotationMatrix =
+						ImageUtils.getTransformationMatrix(
+								rawImage.getWidth(), rawImage.getHeight(),
+								sensorOrientation % 180 != 0 ? rawImage.getHeight() : rawImage.getWidth(),
+								sensorOrientation % 180 != 0 ? rawImage.getWidth() : rawImage.getHeight(),
+								sensorOrientation % 360, false);
+				transform.setConcat(myRotationMatrix, transform);
+			}
 			final Canvas cv = new Canvas(portraitBmp);
 			cv.drawBitmap(rawImage, transform, null);
 			this.portraitBmp = portraitBmp;
@@ -126,7 +133,16 @@ public class FaceScanner {
 					ImageUtils.getTransformationMatrix(
 							input.getWidth(), input.getHeight(),
 							TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE,
-							sensorOrientation, MAINTAIN_ASPECT);
+							0, MAINTAIN_ASPECT);
+			if (sensorOrientation != 0) {
+				Matrix myRotationMatrix =
+						ImageUtils.getTransformationMatrix(
+								input.getWidth(), input.getHeight(),
+								sensorOrientation % 180 != 0 ? input.getHeight() : input.getWidth(),
+								sensorOrientation % 180 != 0 ? input.getWidth() : input.getHeight(),
+								sensorOrientation % 360, false);
+				frameToCropTransform.setConcat(frameToCropTransform, myRotationMatrix);
+			}
 			Bitmap croppedBitmap = Bitmap.createBitmap(TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE, Bitmap.Config.ARGB_8888);
 			final Canvas canvas = new Canvas(croppedBitmap);
 			canvas.drawBitmap(input, frameToCropTransform, null);
@@ -141,7 +157,7 @@ public class FaceScanner {
 		 * @see #process(Bitmap, int)
 		 */
 		public InputImage process(Bitmap input) {
-			return process(input, sensorOrientation);
+			return process(input, 0);
 		}
 
 		/**

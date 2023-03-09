@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -103,10 +103,10 @@ public class FaceBoundsOverlayView extends View {
 			int newWidth = (int)((oldHeight / (float)sensorHeight) * sensorWidth);
 			// calculate out black bars
 			if (newWidth > oldWidth) {
-				extraHeight = (oldHeight - newHeight) / 2;
+				//extraHeight = (oldHeight - newHeight) / 2;
 				viewHeight = newHeight;
 			} else {
-				extraWidth = (oldWidth - newWidth) / 2;
+				//extraWidth = (oldWidth - newWidth) / 2;
 				viewWidth = newWidth;
 			}
 			// scale from image size to view size
@@ -115,8 +115,10 @@ public class FaceBoundsOverlayView extends View {
 		}
 		// map bounds to view size
 		for (Pair<RectF, String> bound : bounds) {
+			android.util.Log.i("got0", String.valueOf(bound.first));
 			transform.mapRect(bound.first);
 			bound.first.offset(extraWidth, extraHeight);
+			android.util.Log.i("got", String.valueOf(bound.first));
 		}
 		invalidate();
 	}

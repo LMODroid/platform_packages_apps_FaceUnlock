@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,13 +66,13 @@ public class ScanActivity extends CameraActivity {
 	}
 
 	@Override
-	protected void setupFaceRecognizer(final Size bitmapSize) {
+	protected void setupFaceRecognizer(final Size bitmapSize, final int imageRotation) {
 		// Create AI-based face detection
 		faceRecognizer = FaceFinder.create(this,
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				0 /* We rotates the image, so IGNORE sensorRotation altogether */
+				imageRotation
 		);
 	}
 
@@ -91,7 +91,7 @@ public class ScanActivity extends CameraActivity {
 		}
 
 		// Return list of detected faces
-		List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceRecognizer.process(getCroppedBitmap(), false);
+		List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceRecognizer.process(getBitmap(), false);
 		computingDetection = false;
 
 		if (data.size() > 1) {

@@ -3,6 +3,10 @@
 	xmlns:tools="http://schemas.android.com/tools"
     android:sharedUserId="android.uid.system">
 
+	<uses-feature
+		android:name="android.hardware.camera"
+		android:required="true" />
+
 	<uses-permission android:name="android.permission.CAMERA" />
 
 	<application

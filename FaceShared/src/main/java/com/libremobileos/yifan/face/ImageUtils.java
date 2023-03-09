@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,7 +89,7 @@ public class ImageUtils {
 
   private static int YUV2RGB(int y, int u, int v) {
     // Adjust and check YUV values
-    y = (y - 16) < 0 ? 0 : (y - 16);
+    y = Math.max((y - 16), 0);
     u -= 128;
     v -= 128;
 
@@ -104,9 +104,9 @@ public class ImageUtils {
     int b = (y1192 + 2066 * u);
 
     // Clipping RGB values to be inside boundaries [ 0 , kMaxChannelValue ]
-    r = r > kMaxChannelValue ? kMaxChannelValue : (r < 0 ? 0 : r);
-    g = g > kMaxChannelValue ? kMaxChannelValue : (g < 0 ? 0 : g);
-    b = b > kMaxChannelValue ? kMaxChannelValue : (b < 0 ? 0 : b);
+    r = r > kMaxChannelValue ? kMaxChannelValue : (Math.max(r, 0));
+    g = g > kMaxChannelValue ? kMaxChannelValue : (Math.max(g, 0));
+    b = b > kMaxChannelValue ? kMaxChannelValue : (Math.max(b, 0));
 
     return 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
   }

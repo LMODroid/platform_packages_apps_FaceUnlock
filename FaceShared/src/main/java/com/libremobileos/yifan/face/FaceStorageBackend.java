@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,6 @@ package com.libremobileos.yifan.face;
 
 import androidx.annotation.Nullable;
 
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;

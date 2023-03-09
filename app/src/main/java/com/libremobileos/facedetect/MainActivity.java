@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,10 +54,10 @@ public class MainActivity extends CameraActivity {
 	}
 
 	@Override
-	protected void setupFaceRecognizer(final Size bitmapSize) {
-		// Store registered Faces in Memory
-		//FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
-		//FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
+	protected void setupFaceRecognizer(final Size bitmapSize, final int imageRotation) {
+		// Store registered Faces
+		// example for in-memory: FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
+		// example for shared preferences: FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
 		FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(getFilesDir());
 
 		// Create AI-based face detection
@@ -66,7 +66,7 @@ public class MainActivity extends CameraActivity {
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				0, /* We rotates the image, so IGNORE sensorRotation altogether */
+				imageRotation,
 				0.7f, /* maximum distance (to saved face model, not from camera) to track face */
 				1 /* minimum model count to track face */
 		);
@@ -80,7 +80,7 @@ public class MainActivity extends CameraActivity {
 			return;
 		}
 		computingDetection = true;
-		List<FaceRecognizer.Face> data = faceRecognizer.recognize(getCroppedBitmap());
+		List<FaceRecognizer.Face> data = faceRecognizer.recognize(getBitmap());
 		computingDetection = false;
 
 		ArrayList<Pair<RectF, String>> bounds = new ArrayList<>();
@@ -91,7 +91,9 @@ public class MainActivity extends CameraActivity {
 			// Camera is frontal so the image is flipped horizontally,
 			// so flip it again.
 			Matrix flip = new Matrix();
-			flip.postScale(-1, 1, width / 2.0f, height / 2.0f);
+			flip.postRotate((360 - getImageRotation()) % 360); // Preview is rotated 360 - cameraRotation degrees
+			flip.postScale(-1, 1, width, height);
+			android.util.Log.i("got00", String.valueOf(boundingBox) + " "+ width + " "+height);
 			flip.mapRect(boundingBox);
 
 			// Generate UI text for face
@@ -104,7 +106,7 @@ public class MainActivity extends CameraActivity {
 				// Show detected object type (always "Face") and how confident the AI is that this is a Face
 				uiText = face.getTitle() + " " + face.getDetectionConfidence();
 			}
-			bounds.add(new Pair<>(boundingBox, uiText));
+			bounds.add(new Pair<>(new RectF(0, 0, width, height), uiText));
 		}
 
 		// Pass bounds to View drawing rectangles

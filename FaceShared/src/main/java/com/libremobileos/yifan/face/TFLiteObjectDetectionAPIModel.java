@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2019 The TensorFlow Authors
  * Copyright 2023 LibreMobileOS
  *

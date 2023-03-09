@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2023 LibreMobileOS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -93,7 +93,16 @@ public class FaceDetector {
 					ImageUtils.getTransformationMatrix(
 							inputWidth, inputHeight,
 							TF_FD_API_INPUT_SIZE, TF_FD_API_INPUT_SIZE,
-							sensorOrientation, MAINTAIN_ASPECT);
+							0, MAINTAIN_ASPECT);
+			if (sensorOrientation != 0) {
+				Matrix myRotationMatrix =
+						ImageUtils.getTransformationMatrix(
+								inputWidth, inputHeight,
+								sensorOrientation % 180 != 0 ? inputHeight : inputWidth,
+								sensorOrientation % 180 != 0 ? inputWidth : inputHeight,
+								sensorOrientation % 360, false);
+				frameToCropTransform.setConcat(frameToCropTransform, myRotationMatrix);
+			}
 			frameToCropTransform.invert(cropToFrameTransform);
 		}
 
