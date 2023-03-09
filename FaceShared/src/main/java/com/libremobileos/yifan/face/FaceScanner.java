@@ -157,7 +157,7 @@ public class FaceScanner {
 		 * @see #process(Bitmap, int)
 		 */
 		public InputImage process(Bitmap input) {
-			return process(input, 0);
+			return process(input, sensorOrientation);
 		}
 
 		/**
@@ -175,7 +175,7 @@ public class FaceScanner {
 					(int) faceBB.left,
 					(int) faceBB.top,
 					(int) faceBB.width(),
-					(int) faceBB.height()));
+					(int) faceBB.height()), 0);
 		}
 	}
 
