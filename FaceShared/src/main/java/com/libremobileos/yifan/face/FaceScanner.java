@@ -91,6 +91,7 @@ public class FaceScanner {
 	public static class InputImageProcessor {
 		private final Bitmap portraitBmp;
 		private final Matrix transform;
+		private final int sensorOrientation;
 
 		/**
 		 * If the class gets instantiated, we enter a special mode of operation for detecting multiple faces on one large {@link Bitmap}.
@@ -98,6 +99,7 @@ public class FaceScanner {
 		 * @param sensorOrientation rotation if the image should be rotated, or 0.
 		 */
 		public InputImageProcessor(Bitmap rawImage, int sensorOrientation) {
+			this.sensorOrientation = sensorOrientation;
 			Bitmap portraitBmp = Bitmap.createBitmap(
 					(sensorOrientation % 180) == 90 ? rawImage.getHeight() : rawImage.getWidth(),
 					(sensorOrientation % 180) == 90 ? rawImage.getWidth() : rawImage.getHeight(), Bitmap.Config.ARGB_8888);
@@ -316,6 +318,10 @@ public class FaceScanner {
 			return resultString.trim();
 		}
 
+		/**
+		 * Get information about image brightness/face light conditions
+		 * @return negative if bad, 0 if neutral, positive if good
+		 */
 		public int getBrightnessHint() {
 			return (brightnessTest1 < 0.5f || brightnessTest2 < 0.4f) ? -1 : // really bad light
 					(brightnessTest1 + brightnessTest2 < 2.2f ? 0 // suboptimal
