@@ -68,12 +68,11 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 	private Runnable postInferenceCallback;
 	private Runnable imageConverter;
 	private Bitmap rgbFrameBitmap = null;
-	private int imageOrientation;
 	private Size previewSize;
 
 	protected final Size desiredInputSize = new Size(640, 480);
 	// The calculated actual processing width & height
-	protected int width, height;
+	protected int width, height, rotatedWidth, rotatedHeight, imageOrientation;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -332,7 +331,15 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			imageOrientation = sensorOrientation + getScreenOrientation();
 			rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 
-			setupFaceRecognizer(new Size(width, height), imageOrientation);
+			if (imageOrientation % 180 != 0) {
+				rotatedHeight = width;
+				rotatedWidth = height;
+			} else {
+				rotatedWidth = width;
+				rotatedHeight = height;
+			}
+
+			setupFaceRecognizer(new Size(width, height));
 
 			// Add permission for camera and let user grant the permission
 			if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -473,7 +480,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		Trace.endSection();
 	}
 
-	protected abstract void setupFaceRecognizer(final Size bitmapSize, final int imageRotation);
+	protected abstract void setupFaceRecognizer(final Size bitmapSize);
 
 	protected abstract void processImage();
 

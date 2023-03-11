@@ -17,6 +17,7 @@
 package com.libremobileos.facedetect;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.os.Bundle;
@@ -28,7 +29,10 @@ import androidx.annotation.Nullable;
 import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceRecognizer;
 import com.libremobileos.yifan.face.FaceStorageBackend;
+import com.libremobileos.yifan.face.ImageUtils;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,7 +58,7 @@ public class MainActivity extends CameraActivity {
 	}
 
 	@Override
-	protected void setupFaceRecognizer(final Size bitmapSize, final int imageRotation) {
+	protected void setupFaceRecognizer(final Size bitmapSize) {
 		// Store registered Faces
 		// example for in-memory: FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
 		// example for shared preferences: FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
@@ -66,7 +70,7 @@ public class MainActivity extends CameraActivity {
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				imageRotation,
+				imageOrientation,
 				0.7f, /* maximum distance (to saved face model, not from camera) to track face */
 				1 /* minimum model count to track face */
 		);
@@ -84,16 +88,13 @@ public class MainActivity extends CameraActivity {
 		computingDetection = false;
 
 		ArrayList<Pair<RectF, String>> bounds = new ArrayList<>();
+		// Camera is frontal so the image is flipped horizontally,
+		// so flip it again (and rotate Rect to match preview rotation)
+		Matrix flip = ImageUtils.getTransformationMatrix(width, height, rotatedWidth, rotatedHeight, imageOrientation, false);
+		flip.preScale(1, -1, width / 2f, height / 2f);
 
 		for (FaceRecognizer.Face face : data) {
 			RectF boundingBox = new RectF(face.getLocation());
-
-			// Camera is frontal so the image is flipped horizontally,
-			// so flip it again.
-			Matrix flip = new Matrix();
-			flip.postRotate((360 - getImageRotation()) % 360); // Preview is rotated 360 - cameraRotation degrees
-			flip.postScale(-1, 1, width, height);
-			android.util.Log.i("got00", String.valueOf(boundingBox) + " "+ width + " "+height);
 			flip.mapRect(boundingBox);
 
 			// Generate UI text for face
@@ -106,11 +107,11 @@ public class MainActivity extends CameraActivity {
 				// Show detected object type (always "Face") and how confident the AI is that this is a Face
 				uiText = face.getTitle() + " " + face.getDetectionConfidence();
 			}
-			bounds.add(new Pair<>(new RectF(0, 0, width, height), uiText));
+			bounds.add(new Pair<>(boundingBox, uiText));
 		}
 
 		// Pass bounds to View drawing rectangles
-		overlayView.updateBounds(bounds, width, height);
+		overlayView.updateBounds(bounds, rotatedWidth, rotatedHeight);
 		readyForNextImage();
 	}
 

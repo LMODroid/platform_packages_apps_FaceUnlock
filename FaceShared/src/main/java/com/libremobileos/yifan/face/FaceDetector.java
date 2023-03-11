@@ -91,7 +91,8 @@ public class FaceDetector {
 		public InputImageProcessor(int inputWidth, int inputHeight, int sensorOrientation) {
 			frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
-							inputWidth, inputHeight,
+							sensorOrientation % 180 != 0 ? inputHeight : inputWidth,
+							sensorOrientation % 180 != 0 ? inputWidth : inputHeight,
 							TF_FD_API_INPUT_SIZE, TF_FD_API_INPUT_SIZE,
 							0, MAINTAIN_ASPECT);
 			if (sensorOrientation != 0) {

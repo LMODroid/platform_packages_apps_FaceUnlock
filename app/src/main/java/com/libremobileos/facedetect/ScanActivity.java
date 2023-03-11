@@ -66,13 +66,13 @@ public class ScanActivity extends CameraActivity {
 	}
 
 	@Override
-	protected void setupFaceRecognizer(final Size bitmapSize, final int imageRotation) {
+	protected void setupFaceRecognizer(final Size bitmapSize) {
 		// Create AI-based face detection
 		faceRecognizer = FaceFinder.create(this,
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				imageRotation
+				imageOrientation
 		);
 	}
 

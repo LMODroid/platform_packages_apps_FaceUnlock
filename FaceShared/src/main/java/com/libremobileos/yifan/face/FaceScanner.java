@@ -133,7 +133,8 @@ public class FaceScanner {
 		public static InputImage process(Bitmap input, int sensorOrientation) {
 			Matrix frameToCropTransform =
 					ImageUtils.getTransformationMatrix(
-							input.getWidth(), input.getHeight(),
+							sensorOrientation % 180 != 0 ? input.getHeight() : input.getWidth(),
+							sensorOrientation % 180 != 0 ? input.getWidth() : input.getHeight(),
 							TF_OD_API_INPUT_SIZE, TF_OD_API_INPUT_SIZE,
 							0, MAINTAIN_ASPECT);
 			if (sensorOrientation != 0) {

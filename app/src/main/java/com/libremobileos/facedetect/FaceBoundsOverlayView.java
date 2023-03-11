@@ -115,10 +115,8 @@ public class FaceBoundsOverlayView extends View {
 		}
 		// map bounds to view size
 		for (Pair<RectF, String> bound : bounds) {
-			android.util.Log.i("got0", String.valueOf(bound.first));
 			transform.mapRect(bound.first);
 			bound.first.offset(extraWidth, extraHeight);
-			android.util.Log.i("got", String.valueOf(bound.first));
 		}
 		invalidate();
 	}
