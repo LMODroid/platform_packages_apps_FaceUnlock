@@ -25,6 +25,7 @@ import android.util.Pair;
 import android.util.Size;
 
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceRecognizer;
@@ -36,19 +37,21 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends CameraActivity {
+public class MainActivity extends AppCompatActivity implements CameraService.CameraCallback {
 	// AI-based detector
 	private FaceRecognizer faceRecognizer;
 	// Simple view allowing us to draw Rectangles over the Preview
 	private FaceBoundsOverlayView overlayView;
 	private boolean computingDetection = false;
+	private CameraService mCameraService;
 
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		// Initialize basic views
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		connectToCam(findViewById(R.id.viewFinder));
+		//connectToCam(findViewById(R.id.viewFinder));
+		mCameraService = new CameraService(this, this);
 
 		overlayView = findViewById(R.id.overlay);
 		overlayView.setOnClickListener(v -> {
@@ -58,7 +61,21 @@ public class MainActivity extends CameraActivity {
 	}
 
 	@Override
-	protected void setupFaceRecognizer(final Size bitmapSize) {
+	protected void onResume() {
+		super.onResume();
+		mCameraService.startBackgroundThread();
+		mCameraService.openCamera();
+	}
+
+	@Override
+	protected void onPause() {
+		mCameraService.closeCamera();
+		mCameraService.stopBackgroundThread();
+		super.onPause();
+	}
+
+	@Override
+	public void setupFaceRecognizer(final Size bitmapSize, int rotation) {
 		// Store registered Faces
 		// example for in-memory: FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
 		// example for shared preferences: FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
@@ -70,28 +87,28 @@ public class MainActivity extends CameraActivity {
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				imageOrientation,
+				rotation,
 				0.7f, /* maximum distance (to saved face model, not from camera) to track face */
 				1 /* minimum model count to track face */
 		);
 	}
 
 	@Override
-	protected void processImage() {
+	public void processImage(Size previewSize, Size rotatedSize, Bitmap rgbBitmap, int rotation) {
 		// No mutex needed as this method is not reentrant.
 		if (computingDetection) {
-			readyForNextImage();
+			mCameraService.readyForNextImage();
 			return;
 		}
 		computingDetection = true;
-		List<FaceRecognizer.Face> data = faceRecognizer.recognize(getBitmap());
+		List<FaceRecognizer.Face> data = faceRecognizer.recognize(rgbBitmap);
 		computingDetection = false;
 
 		ArrayList<Pair<RectF, String>> bounds = new ArrayList<>();
 		// Camera is frontal so the image is flipped horizontally,
 		// so flip it again (and rotate Rect to match preview rotation)
-		Matrix flip = ImageUtils.getTransformationMatrix(width, height, rotatedWidth, rotatedHeight, imageOrientation, false);
-		flip.preScale(1, -1, width / 2f, height / 2f);
+		Matrix flip = ImageUtils.getTransformationMatrix(previewSize.getWidth(), previewSize.getHeight(), rotatedSize.getWidth(), rotatedSize.getHeight(), rotation, false);
+		flip.preScale(1, -1, previewSize.getWidth() / 2f, previewSize.getHeight() / 2f);
 
 		for (FaceRecognizer.Face face : data) {
 			RectF boundingBox = new RectF(face.getLocation());
@@ -111,8 +128,8 @@ public class MainActivity extends CameraActivity {
 		}
 
 		// Pass bounds to View drawing rectangles
-		overlayView.updateBounds(bounds, rotatedWidth, rotatedHeight);
-		readyForNextImage();
+		overlayView.updateBounds(bounds, rotatedSize.getWidth(), rotatedSize.getHeight());
+		mCameraService.readyForNextImage();
 	}
 
 }
