@@ -346,7 +346,7 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			//	ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
 				return;
 			}
-			manager.openCamera(cameraId, stateCallback, null);
+			manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
 		} catch (CameraAccessException e) {
 			e.printStackTrace();
 		}
