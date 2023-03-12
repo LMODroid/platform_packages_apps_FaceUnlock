@@ -44,6 +44,8 @@ import java.util.Arrays;
 import java.util.List;
 import android.hardware.face.FaceManager;
 
+import android.hardware.biometrics.face.V1_0.FaceError;
+
 public class ScanActivity extends CameraActivity {
 
 	// AI-based detector
@@ -227,7 +229,7 @@ public class ScanActivity extends CameraActivity {
 				RemoteFaceServiceClient.connect(this, faced -> {
 					try {
 						if (!faced.enroll(encodedFaces, mToken)) {
-							service.error(4); // NOT_ENROLLED
+							service.error(FaceError.UNABLE_TO_PROCESS);
 						} else {
 							service.enrollResult(0);
 						}
