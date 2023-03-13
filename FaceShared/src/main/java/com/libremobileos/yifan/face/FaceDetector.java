@@ -48,7 +48,7 @@ public class FaceDetector {
 	private static final int TF_FD_API_INPUT_SIZE = 300;
 	private static final boolean TF_FD_API_IS_QUANTIZED = true;
 	private static final String TF_FD_API_MODEL_FILE = "detect-class1.tflite";
-	private static final String TF_FD_API_LABELS_FILE = "file:///android_asset/detect-class1.txt";
+	private static final String TF_FD_API_LABELS_FILE = "detect-class1.txt";
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 

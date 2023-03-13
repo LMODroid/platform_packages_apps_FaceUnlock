@@ -51,7 +51,7 @@ public class FaceScanner {
 	private static final int TF_OD_API_INPUT_SIZE = 112;
 	private static final boolean TF_OD_API_IS_QUANTIZED = false;
 	private static final String TF_OD_API_MODEL_FILE = "mobile_face_net.tflite";
-	private static final String TF_OD_API_LABELS_FILE = "file:///android_asset/mobile_face_net.txt";
+	private static final String TF_OD_API_LABELS_FILE = "mobile_face_net.txt";
 	// Maintain aspect ratio or squish image?
 	private static final boolean MAINTAIN_ASPECT = false;
 	// Brightness data

@@ -24,6 +24,7 @@ import android.graphics.RectF;
 import android.os.Trace;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,7 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
   // Float model
   private static final float IMAGE_MEAN = 127.5f;
   private static final float IMAGE_STD = 127.5f;
+  private static final String SYSTEM_MODEL_DIR = "/system_ext/etc/face";
 
   private boolean isModelQuantized;
   // Config values.
@@ -86,15 +88,28 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
   private TFLiteObjectDetectionAPIModel() {}
 
   /** Memory-map the model file in Assets. */
-  private static MappedByteBuffer loadModelFile(AssetManager assets, String modelFilename)
-      throws IOException {
-    AssetFileDescriptor fileDescriptor = assets.openFd(modelFilename);
-    try (FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor())) {
-      FileChannel fileChannel = inputStream.getChannel();
-      long startOffset = fileDescriptor.getStartOffset();
-      long declaredLength = fileDescriptor.getDeclaredLength();
-      return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
+  private static MappedByteBuffer loadModelFile(AssetManager assets, String modelFilename) throws IOException {
+    FileChannel fileChannel;
+    long startOffset;
+    long declaredLength;
+    try {
+      AssetFileDescriptor fileDescriptor = assets.openFd(modelFilename);
+      FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
+      fileChannel = inputStream.getChannel();
+      startOffset = fileDescriptor.getStartOffset();
+      declaredLength = fileDescriptor.getDeclaredLength();
+    } catch (Exception e) {
+      File f = new File(SYSTEM_MODEL_DIR, modelFilename);
+      if (f.exists() && f.canRead()) {
+        FileInputStream inputStream = new FileInputStream(f);
+        fileChannel = inputStream.getChannel();
+        startOffset = 0;
+        declaredLength = f.length();
+      } else {
+        throw new IOException(modelFilename + " not found in assets or " + SYSTEM_MODEL_DIR);
+      }
     }
+    return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
   }
 
   /**
@@ -122,8 +137,17 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
 
     final TFLiteObjectDetectionAPIModel d = new TFLiteObjectDetectionAPIModel();
 
-    String actualFilename = labelFilename.split("file:///android_asset/")[1];
-    InputStream labelsInput = assetManager.open(actualFilename);
+    InputStream labelsInput;
+    try {
+      labelsInput = assetManager.open(labelFilename);
+    } catch (Exception e) {
+      File f = new File(SYSTEM_MODEL_DIR, labelFilename);
+      if (f.exists() && f.canRead()) {
+        labelsInput = new FileInputStream(f);
+      } else {
+        throw new IOException(labelFilename + " not found in assets or " + SYSTEM_MODEL_DIR);
+      }
+    }
     BufferedReader br = new BufferedReader(new InputStreamReader(labelsInput));
     String line;
     while ((line = br.readLine()) != null) {
