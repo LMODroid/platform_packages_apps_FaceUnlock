@@ -31,7 +31,7 @@ jobs:
           java-version: 11
           distribution: adopt
       - name: Gradle Build Action
-        run: ./gradlew :FaceShared:generateReleaseJavadoc
+        run: ./gradlew :FaceShared:generateReleaseWithGpuJavadoc
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
