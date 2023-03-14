@@ -10,7 +10,7 @@
 		android:id="@+id/imageView"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		app:tint="?android:attr/colorAccent"
+		android:tint="?android:attr/colorAccent"
 		app:layout_constraintBottom_toBottomOf="parent"
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent"
@@ -35,15 +35,9 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_margin="20dp"
-		android:text="@string/next"
-		app:layout_constraintBottom_toBottomOf="parent"
-		app:layout_constraintEnd_toEndOf="parent" />
-
-	<Button
-		android:id="@+id/button2"
-		android:layout_width="wrap_content"
-		android:layout_height="wrap_content"
-		android:layout_margin="20dp"
+		android:background="@drawable/btn_bg"
+		android:shadowRadius="0"
+		android:textColor="?android:attr/textColorPrimaryInverse"
 		android:text="@string/cancel"
 		app:layout_constraintBottom_toBottomOf="parent"
 		app:layout_constraintStart_toStartOf="parent" />

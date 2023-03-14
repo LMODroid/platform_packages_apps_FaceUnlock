@@ -3,6 +3,7 @@
 	<style name="Theme.FaceDetect" parent="Theme.FaceDetect.Base" />
 	<style name="Theme.FaceDetect.Base" parent="@android:style/Theme.DeviceDefault.DayNight">
 		<item name="android:colorPrimaryDark">@android:color/transparent</item> <!-- Status bar color -->
+		<item name="android:colorBackground">@android:color/system_neutral1_900</item>
 	</style>
 	<style name="Theme.FaceDetect.NoActionBar" parent="Theme.FaceDetect.Base">
 		<item name="android:windowActionBar">false</item>

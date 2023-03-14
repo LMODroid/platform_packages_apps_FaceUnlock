@@ -104,8 +104,7 @@ public class ScanActivity extends CameraActivity {
 		overlayView = f.findViewById(R.id.overlay);
 		subText = f.findViewById(R.id.textView);
 		subText.setText(R.string.scan_face_now);
-		findViewById(R.id.button2).setOnClickListener(v -> finish());
-		findViewById(R.id.button).setVisibility(View.GONE);
+		findViewById(R.id.button).setOnClickListener(v -> finish());
 		mToken = getIntent().getByteArrayExtra(EXTRA_KEY_CHALLENGE_TOKEN);
 		mChallenge = getIntent().getLongExtra(EXTRA_KEY_CHALLENGE, -1L);
 		mSensorId = getIntent().getIntExtra(EXTRA_KEY_SENSOR_ID, -1);
