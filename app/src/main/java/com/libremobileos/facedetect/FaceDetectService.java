@@ -384,7 +384,7 @@ public class FaceDetectService extends Service {
 
 		BiometricsFace biometricsFace = new BiometricsFace();
 		try {
-			biometricsFace.registerAsService("default");
+			biometricsFace.registerAsService("lmodroid");
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
