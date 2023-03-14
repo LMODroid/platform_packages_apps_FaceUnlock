@@ -51,5 +51,5 @@
 		android:id="@+id/textView"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		android:textAppearance="@style/TextAppearance.Material3.BodyMedium" />
+		android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 </LinearLayout>

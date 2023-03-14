@@ -1,19 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 	<!-- Base application theme. -->
 	<style name="Theme.FaceDetect" parent="Theme.FaceDetect.Base" />
-	<style name="Theme.FaceDetect.Base" parent="Theme.Material3.DynamicColors.DayNight">
+	<style name="Theme.FaceDetect.Base" parent="Theme.AppCompat.DayNight">
 		<item name="colorPrimaryDark">@android:color/transparent</item> <!-- Status bar color -->
 		<item name="colorPrimaryVariant">@android:color/transparent</item>
-		<item name="alertDialogTheme">@style/Theme.FaceDetect.AlertDialog</item>
 	</style>
 	<style name="Theme.FaceDetect.NoActionBar" parent="Theme.FaceDetect.Base">
 		<item name="windowActionBar">false</item>
 		<item name="windowNoTitle">true</item>
-	</style>
-	<style name="Theme.FaceDetect.AlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
-		<item name="dialogCornerRadius">28dp</item>
-		<item name="cornerFamily">rounded</item>
-		<item name="android:colorBackground">?attr/colorSurface</item>
-		<item name="android:layout" tools:ignore="PrivateResource">@layout/m3_alert_dialog</item>
 	</style>
 </resources>
