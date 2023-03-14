@@ -163,7 +163,8 @@ public class ScanActivity extends CameraActivity {
 				0.6f, /* minimum confidence to consider object as face */
 				bitmapSize.getWidth(), /* bitmap width */
 				bitmapSize.getHeight(), /* bitmap height */
-				imageOrientation
+				imageOrientation,
+				false, false, 4
 		);
 	}
 

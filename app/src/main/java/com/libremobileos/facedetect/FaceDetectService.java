@@ -278,7 +278,8 @@ public class FaceDetectService extends Service {
 					bitmapSize.getHeight(), /* bitmap height */
 					rotation,
 					0.7f, /* maximum distance (to saved face model, not from camera) to track face */
-					1 /* minimum model count to track face */
+					1, /* minimum model count to track face */
+					false, false, 4
 			);
 		}
 
