@@ -330,8 +330,6 @@ public class FaceDetectService extends Service {
 									throw new IOException("f.canRead() == false");
 								}
 								try (InputStream inputStream = new FileInputStream(f)) {
-									Log.e("erfan", "hat: " + hat);
-
 									// https://stackoverflow.com/a/35446009
 									ByteArrayOutputStream result = new ByteArrayOutputStream();
 									byte[] buffer = new byte[1024];
