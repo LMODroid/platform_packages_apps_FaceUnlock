@@ -1,8 +1,6 @@
 package com.libremobileos.facedetect;
 
-import static android.app.job.JobInfo.PRIORITY_MIN;
 import static android.os.Process.THREAD_PRIORITY_FOREGROUND;
-import static com.libremobileos.facedetect.BuildConfig.DEBUG;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
@@ -62,6 +60,7 @@ public class FaceDetectService extends Service {
 	private long kDeviceId = 123; // Arbitrary value.
 	private long kAuthenticatorId = 987; // Arbitrary value.
 	private int kFaceId = 100; // Arbitrary value.
+	private boolean DEBUG = true;
 
 	private static final int MSG_CHALLENGE_TIMEOUT = 100;
 
@@ -376,7 +375,6 @@ public class FaceDetectService extends Service {
 		NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, channelId);
 		Notification notification = notificationBuilder.setOngoing(true)
 				.setSmallIcon(R.mipmap.ic_launcher)
-				.setPriority(PRIORITY_MIN)
 				.setCategory(NotificationCompat.CATEGORY_SERVICE)
 				.build();
 
