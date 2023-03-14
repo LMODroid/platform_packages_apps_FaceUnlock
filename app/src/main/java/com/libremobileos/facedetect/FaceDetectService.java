@@ -2,65 +2,47 @@ package com.libremobileos.facedetect;
 
 import static android.os.Process.THREAD_PRIORITY_FOREGROUND;
 
-import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
-import androidx.core.app.NotificationCompat;
-
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.hardware.biometrics.face.V1_0.FaceAcquiredInfo;
 import android.hardware.biometrics.face.V1_0.Feature;
 import android.hardware.biometrics.face.V1_0.IBiometricsFaceClientCallback;
 import android.hardware.biometrics.face.V1_0.OptionalBool;
 import android.hardware.biometrics.face.V1_0.OptionalUint64;
-import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.os.HwBinder;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
+import android.util.Base64;
 import android.util.Log;
-import android.util.Pair;
 import android.util.Size;
-import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.TextView;
 
 import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
-import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceRecognizer;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 import com.libremobileos.yifan.face.ImageUtils;
-import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
 
 import android.hardware.biometrics.face.V1_0.IBiometricsFace;
-import android.hardware.biometrics.face.V1_0.IBiometricsFaceClientCallback;
 import android.hardware.biometrics.face.V1_0.Status;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 public class FaceDetectService extends Service {
-	private String TAG = "FaceUnlockService";
-	private long kDeviceId = 123; // Arbitrary value.
-	private long kAuthenticatorId = 987; // Arbitrary value.
-	private int kFaceId = 100; // Arbitrary value.
-	private boolean DEBUG = true;
+	private final String TAG = "FaceUnlockService";
+	private final long kDeviceId = 123; // Arbitrary value.
+	private final int kFaceId = 100; // Arbitrary value.
+	private final boolean DEBUG = false;
 
 	private static final int MSG_CHALLENGE_TIMEOUT = 100;
 
@@ -76,7 +58,7 @@ public class FaceDetectService extends Service {
 
 	private class BiometricsFace extends IBiometricsFace.Stub {
 		@Override
-		public OptionalUint64 setCallback(IBiometricsFaceClientCallback clientCallback) throws RemoteException {
+		public OptionalUint64 setCallback(IBiometricsFaceClientCallback clientCallback) {
 			if (DEBUG)
 				Log.d(TAG, "setCallback");
 
@@ -88,7 +70,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int setActiveUser(int userId, String storePath) throws RemoteException {
+		public int setActiveUser(int userId, String storePath) {
 			if (DEBUG)
 				Log.d(TAG, "setActiveUser " + userId + " " + storePath);
 
@@ -96,7 +78,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public OptionalUint64 generateChallenge(int challengeTimeoutSec) throws RemoteException {
+		public OptionalUint64 generateChallenge(int challengeTimeoutSec) {
 			if (DEBUG)
 				Log.d(TAG, "generateChallenge + " + challengeTimeoutSec);
 
@@ -105,7 +87,7 @@ public class FaceDetectService extends Service {
 			}
 			mChallengeCount += 1;
 			mWorkHandler.removeMessages(MSG_CHALLENGE_TIMEOUT);
-			mWorkHandler.sendEmptyMessageDelayed(MSG_CHALLENGE_TIMEOUT, challengeTimeoutSec * 1000);
+			mWorkHandler.sendEmptyMessageDelayed(MSG_CHALLENGE_TIMEOUT, challengeTimeoutSec * 1000L);
 
 			OptionalUint64 ret = new OptionalUint64();
 			ret.value = mChallenge;
@@ -115,7 +97,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int enroll(ArrayList<Byte> hat, int timeoutSec, ArrayList<Integer> disabledFeatures) throws RemoteException {
+		public int enroll(ArrayList<Byte> hat, int timeoutSec, ArrayList<Integer> disabledFeatures) {
 			if (DEBUG)
 				Log.d(TAG, "enroll");
 
@@ -123,7 +105,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int revokeChallenge() throws RemoteException {
+		public int revokeChallenge() {
 			if (DEBUG)
 				Log.d(TAG, "revokeChallenge");
 
@@ -137,7 +119,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int setFeature(int feature, boolean enabled, ArrayList<Byte> hat, int faceId) throws RemoteException {
+		public int setFeature(int feature, boolean enabled, ArrayList<Byte> hat, int faceId) {
 			if (DEBUG)
 				Log.d(TAG, "setFeature " + feature + " " + enabled + " " + faceId);
 
@@ -147,7 +129,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public OptionalBool getFeature(int feature, int faceId) throws RemoteException {
+		public OptionalBool getFeature(int feature, int faceId) {
 			if (DEBUG)
 				Log.d(TAG, "getFeature " + feature + " " + faceId);
 
@@ -170,18 +152,19 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public OptionalUint64 getAuthenticatorId() throws RemoteException {
+		public OptionalUint64 getAuthenticatorId() {
 			if (DEBUG)
 				Log.d(TAG, "getAuthenticatorId");
 
 			OptionalUint64 ret = new OptionalUint64();
-			ret.value = kAuthenticatorId;
+			// Arbitrary value.
+			ret.value = 987;
 			ret.status = Status.OK;
 			return ret;
 		}
 
 		@Override
-		public int cancel() throws RemoteException {
+		public int cancel() {
 			// Not sure what to do here.
 			mCameraService.closeCamera();
 			mCameraService.stopBackgroundThread();
@@ -189,7 +172,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int enumerate() throws RemoteException {
+		public int enumerate() {
 			if (DEBUG)
 				Log.d(TAG, "enumerate");
 
@@ -214,11 +197,11 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int remove(int faceId) throws RemoteException {
+		public int remove(int faceId) {
 			if (DEBUG)
 				Log.d(TAG, "remove " + faceId);
 
-			mWorkHandler.post(() -> {
+			mWorkHandler.post(() ->
 				RemoteFaceServiceClient.connect(mContext, faced -> {
 					if ((faceId == kFaceId || faceId == 0) && faced.isEnrolled()) {
 						faced.unenroll();
@@ -231,13 +214,13 @@ public class FaceDetectService extends Service {
 							e.printStackTrace();
 						}
 					}
-				});
-			});
+				})
+			);
 			return Status.OK;
 		}
 
 		@Override
-		public int authenticate(long operationId) throws RemoteException {
+		public int authenticate(long operationId) {
 			if (DEBUG)
 				Log.d(TAG, "authenticate " + operationId);
 
@@ -250,7 +233,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int userActivity() throws RemoteException {
+		public int userActivity() {
 			if (DEBUG)
 				Log.d(TAG, "userActivity");
 
@@ -258,7 +241,7 @@ public class FaceDetectService extends Service {
 		}
 
 		@Override
-		public int resetLockout(ArrayList<Byte> hat) throws RemoteException {
+		public int resetLockout(ArrayList<Byte> hat) {
 			if (DEBUG)
 				Log.d(TAG, "resetLockout");
 
@@ -298,23 +281,20 @@ public class FaceDetectService extends Service {
 			List<FaceRecognizer.Face> data = faceRecognizer.recognize(rgbBitmap);
 			computingDetection = false;
 
-			ArrayList<Pair<RectF, String>> bounds = new ArrayList<>();
 			// Camera is frontal so the image is flipped horizontally,
 			// so flip it again (and rotate Rect to match preview rotation)
 			Matrix flip = ImageUtils.getTransformationMatrix(previewSize.getWidth(), previewSize.getHeight(), rotatedSize.getWidth(), rotatedSize.getHeight(), rotation, false);
 			flip.preScale(1, -1, previewSize.getWidth() / 2f, previewSize.getHeight() / 2f);
 
 			for (FaceRecognizer.Face face : data) {
-				RectF boundingBox = new RectF(face.getLocation());
-				flip.mapRect(boundingBox);
-
 				try {
 					if (mCallback != null) {
 						mCallback.onAcquired(kDeviceId, mUserId, FaceAcquiredInfo.GOOD, 0);
 						// Do we have any match?
 						if (face.isRecognized()) {
+							SharedPreferences prefs2 = mContext.getSharedPreferences("faces2", 0);
 							ArrayList<Byte> hat = new ArrayList<>();
-							for (byte b : face.getHat()) {
+							for (byte b : Base64.decode(prefs2.getString(RemoteFaceServiceClient.FACE, ""), Base64.URL_SAFE)) {
 								hat.add(b);
 							}
 							mCallback.onAuthenticated(kDeviceId, kFaceId, mUserId, hat);
@@ -372,10 +352,10 @@ public class FaceDetectService extends Service {
 		// Create the Foreground Service
 		NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		String channelId = createNotificationChannel(notificationManager);
-		NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, channelId);
+		Notification.Builder notificationBuilder = new Notification.Builder(this, channelId);
 		Notification notification = notificationBuilder.setOngoing(true)
 				.setSmallIcon(R.mipmap.ic_launcher)
-				.setCategory(NotificationCompat.CATEGORY_SERVICE)
+				.setCategory(Notification.CATEGORY_SERVICE)
 				.build();
 
 		startForeground(101, notification);
@@ -402,7 +382,6 @@ public class FaceDetectService extends Service {
 		return binder;
 	}
 
-	@RequiresApi(Build.VERSION_CODES.O)
 	private String createNotificationChannel(NotificationManager notificationManager){
 		String channelId = "my_service_channelid";
 		String channelName = "My Foreground Service";

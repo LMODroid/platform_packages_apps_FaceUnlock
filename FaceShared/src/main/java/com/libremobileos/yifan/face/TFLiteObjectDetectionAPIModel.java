@@ -40,8 +40,9 @@ import java.util.Map;
 import java.util.Vector;
 
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.gpu.GpuDelegate;
 import org.tensorflow.lite.nnapi.NnApiDelegate;
+
+import com.libremobileos.yifan.util.GpuDelegateFactory;
 
 /**
  * Wrapper for frozen detection models trained using the Tensorflow Object Detection API
@@ -164,7 +165,7 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
       if (useEnhancedAcceleration) {
         options.addDelegate(new NnApiDelegate());
       } else {
-        options.addDelegate(new GpuDelegate());
+        options.addDelegate(GpuDelegateFactory.get());
       }
     }
 

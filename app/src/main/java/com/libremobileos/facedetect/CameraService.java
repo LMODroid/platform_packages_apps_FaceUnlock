@@ -1,13 +1,8 @@
 package com.libremobileos.facedetect;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -18,7 +13,6 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Trace;
@@ -27,20 +21,14 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Display;
 import android.view.Surface;
-import android.view.TextureView;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
-import com.libremobileos.yifan.face.AutoFitTextureView;
 import com.libremobileos.yifan.face.ImageUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -71,8 +59,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	private Bitmap rgbFrameBitmap = null;
 	private Size previewSize;
 	private Size rotatedSize;
-	private Context mContext;
-	private CameraCallback mCallback;
+	private final Context mContext;
+	private final CameraCallback mCallback;
 
 	protected final Size desiredInputSize = new Size(640, 480);
 	// The calculated actual processing width & height
@@ -138,7 +126,7 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
 			captureRequestBuilder.addTarget(previewReader.getSurface());
 
-			cameraDevice.createCaptureSession(Arrays.asList(previewReader.getSurface()),
+			cameraDevice.createCaptureSession(Collections.singletonList(previewReader.getSurface()),
 					new CameraCaptureSession.StateCallback() {
 				@Override
 				public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
@@ -271,20 +259,10 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 			}
 			mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
 
-			// Add permission for camera and let user grant the permission
-			if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-			//	ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
-				return;
-			}
 			manager.openCamera(cameraId, stateCallback, null);
-		} catch (CameraAccessException e) {
+		} catch (CameraAccessException | SecurityException e) {
 			e.printStackTrace();
 		}
-		Log.e(TAG, "openCamera X");
-	}
-
-	public int getImageRotation() {
-		return imageOrientation;
 	}
 
 	public void closeCamera() {
@@ -304,7 +282,6 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		for (int i = 0; i < planes.length; ++i) {
 			final ByteBuffer buffer = planes[i].getBuffer();
 			if (yuvBytes[i] == null) {
-				Log.d(TAG, "Initializing buffer " + i + " at size " + buffer.capacity());
 				yuvBytes[i] = new byte[buffer.capacity()];
 			}
 			buffer.get(yuvBytes[i]);
@@ -314,10 +291,6 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	private int[] getRgbBytes() {
 		imageConverter.run();
 		return rgbBytes;
-	}
-
-	public Bitmap getBitmap() {
-		return rgbFrameBitmap;
 	}
 
 	private int getScreenOrientation() {

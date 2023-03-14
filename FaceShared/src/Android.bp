@@ -1,7 +1,8 @@
 java_library_static {
     name: "LMOFaceShared",
     sdk_version: "current",
-    srcs: ["java/**/*.java"],
+    srcs: ["main/java/**/*.java", "withoutGpu/java/**/*.java"],
+    manifest: "main/AndroidManifest.xml",
 
     static_libs: [
         "androidx.annotation_annotation",
@@ -11,24 +12,24 @@ java_library_static {
 
 prebuilt_etc {
     name: "detect-class1.tflite",
-    src: "assets/detect-class1.tflite",
+    src: "main/assets/detect-class1.tflite",
     sub_dir: "face",
 }
 
 prebuilt_etc {
     name: "detect-class1.txt",
-    src: "assets/detect-class1.txt",
+    src: "main/assets/detect-class1.txt",
     sub_dir: "face",
 }
 
 prebuilt_etc {
     name: "mobile_face_net.tflite",
-    src: "assets/mobile_face_net.tflite",
+    src: "main/assets/mobile_face_net.tflite",
     sub_dir: "face",
 }
 
 prebuilt_etc {
     name: "mobile_face_net.txt",
-    src: "assets/mobile_face_net.txt",
+    src: "main/assets/mobile_face_net.txt",
     sub_dir: "face",
 }

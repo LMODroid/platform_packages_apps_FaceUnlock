@@ -9,8 +9,8 @@
 		android:required="true" />
 
 	<uses-permission android:name="android.permission.CAMERA" />
-
-	<uses-permission android:name="android.permission.MANAGE_BIOMETRIC" />
+	<uses-permission android:name="android.permission.MANAGE_BIOMETRIC"
+		tools:ignore="ProtectedPermissions" />
 
 	<application
 		android:allowBackup="true"
@@ -22,28 +22,13 @@
 		android:theme="@style/Theme.FaceDetect"
 		tools:targetApi="31">
 		<activity
-			android:name=".EnrollActivity"
-			android:theme="@style/Theme.FaceDetect.NoActionBar"
-			android:exported="false" />
-		<activity
 			android:name=".ScanActivity"
 			android:theme="@style/Theme.FaceDetect.NoActionBar"
-			android:exported="false"/>
+			android:exported="false" />
 		<service
 			android:name=".FaceDetectService"
-			android:exported="true" />
-		<activity
-			android:name=".SettingsActivity"
-			android:exported="false"/>
-		<activity
-			android:name=".MainActivity"
-			android:exported="true">
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-		</activity>
+			android:exported="true"
+			tools:ignore="ExportedService" />
 	</application>
 
 </manifest>

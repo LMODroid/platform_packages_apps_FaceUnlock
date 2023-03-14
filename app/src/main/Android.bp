@@ -11,10 +11,8 @@ android_app {
 
     static_libs: [
         "androidx.annotation_annotation",
-        "androidx.appcompat_appcompat",
-        "androidx.preference_preference",
-        "androidx-constraintlayout_constraintlayout",
-        "com.google.android.material_material",
+        "androidx.cardview_cardview",
+        "androidx.constraintlayout_constraintlayout",
         "LMOFaceShared",
         "android.hardware.biometrics.face-V1.0-java",
     ],

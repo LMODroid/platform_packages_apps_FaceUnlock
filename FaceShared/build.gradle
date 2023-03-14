@@ -42,10 +42,20 @@ android {
 		sourceCompatibility JavaVersion.VERSION_11
 		targetCompatibility JavaVersion.VERSION_11
 	}
+
+	flavorDimensions "gpu"
+	productFlavors {
+		withGpu {
+			dependencies {
+				implementation('org.tensorflow:tensorflow-lite-gpu:2.11.0')
+			}
+		}
+		withoutGpu {}
+	}
+
 }
 
 dependencies {
-	implementation('androidx.annotation:annotation:1.5.0')
+	implementation('androidx.annotation:annotation:1.6.0')
 	implementation('org.tensorflow:tensorflow-lite:2.11.0')
-	implementation('org.tensorflow:tensorflow-lite-gpu:2.11.0')
 }

@@ -2,23 +2,25 @@ package com.libremobileos.facedetect;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.util.Base64;
 
 import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceStorageBackend;
-import com.libremobileos.yifan.face.SharedPreferencesFaceStorageBackend;
 
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 public abstract class RemoteFaceServiceClient {
+	public static final String FACE = "Face";
+	public static final String SECURE = "secure";
+
 	public static void connect(Context ctx, Consumer<RemoteFaceServiceClient> callback) {
 		new Thread(() -> {
 			//TODO replace with remote thing
 			SharedPreferences prefs2 = ctx.getSharedPreferences("faces2", 0);
 			FaceStorageBackend s = new DirectoryFaceStorageBackend(ctx.getFilesDir());;
 			callback.accept(new RemoteFaceServiceClient() {
-				private static final String FACE = "Face";
-				private static final String SECURE = "secure";
 
 				@Override
 				public boolean isEnrolled() {
@@ -42,7 +44,11 @@ public abstract class RemoteFaceServiceClient {
 
 				@Override
 				public boolean enroll(String data, byte[] hat) {
-					return s.register(FACE, FaceDataEncoder.decode(data), hat, true);
+					boolean result = s.register(FACE, FaceDataEncoder.decode(data), true);
+					if (result) {
+						prefs2.edit().putString(FACE, new String(Base64.encode(hat, Base64.URL_SAFE))).apply();
+					}
+					return result;
 				}
 			});
 		}).start();

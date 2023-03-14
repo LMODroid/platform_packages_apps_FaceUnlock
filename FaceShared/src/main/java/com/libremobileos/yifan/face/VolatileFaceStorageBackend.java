@@ -27,8 +27,7 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	public VolatileFaceStorageBackend() {
 		super();
 		cachedNames = new HashSet<>();
-		cachedFaceData = new HashMap<>();
-		cachedHatData = new HashMap<>();
+		cachedData = new HashMap<>();
 	}
 
 	@Override
@@ -37,17 +36,12 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
-	protected boolean registerInternal(String name, String data, String hat, boolean duplicate) {
+	protected boolean registerInternal(String name, String data, boolean duplicate) {
 		throw new RuntimeException("Stub!");
 	}
 
 	@Override
-	protected String getFaceInternal(String name) {
-		throw new RuntimeException("Stub!");
-	}
-
-	@Override
-	protected String getFaceHatInternal(String name) {
+	protected String getInternal(String name) {
 		throw new RuntimeException("Stub!");
 	}
 
@@ -62,21 +56,14 @@ public class VolatileFaceStorageBackend extends FaceStorageBackend {
 	}
 
 	@Override
-	public boolean register(String rawname, float[][] alldata, byte[] hat, boolean replace) {
+	public boolean register(String rawname, float[][] alldata, boolean replace) {
 		cachedNames.add(rawname);
-		cachedFaceData.put(rawname, alldata);
-		cachedHatData.put(rawname, hat);
+		cachedData.put(rawname, alldata);
 		return true;
 	}
 
 	@Override
-	public float[][] getFace(String name) {
-		return getFaceCached(name);
+	public float[][] get(String name) {
+		return getCached(name);
 	}
-
-	@Override
-	public byte[] getFaceHat(String name) {
-		return getFaceHatCached(name);
-	}
-
 }

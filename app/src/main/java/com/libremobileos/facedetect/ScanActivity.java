@@ -16,6 +16,7 @@
 
 package com.libremobileos.facedetect;
 
+import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -25,7 +26,6 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.os.UserHandle;
 import android.util.Pair;
 import android.util.Size;
 import android.view.View;
@@ -40,7 +40,6 @@ import com.libremobileos.yifan.face.FaceFinder;
 import com.libremobileos.yifan.face.FaceScanner;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import android.hardware.face.FaceManager;
 
@@ -105,10 +104,7 @@ public class ScanActivity extends CameraActivity {
 		overlayView = f.findViewById(R.id.overlay);
 		subText = f.findViewById(R.id.textView);
 		subText.setText(R.string.scan_face_now);
-		findViewById(R.id.button2).setOnClickListener(v -> {
-			startActivity(new Intent(this, SettingsActivity.class));
-			finish();
-		});
+		findViewById(R.id.button2).setOnClickListener(v -> finish());
 		findViewById(R.id.button).setVisibility(View.GONE);
 		mToken = getIntent().getByteArrayExtra(EXTRA_KEY_CHALLENGE_TOKEN);
 		mChallenge = getIntent().getLongExtra(EXTRA_KEY_CHALLENGE, -1L);
@@ -130,9 +126,12 @@ public class ScanActivity extends CameraActivity {
 			}
 			mEnrollmentCancel = new CancellationSignal();
 			FaceManager faceManager = getFaceManagerOrNull(this);
+			assert faceManager != null;
 			faceManager.enroll(mUserId, mToken, mEnrollmentCancel, mEnrollmentCallback, disabledFeaturesArr);
 		}
 	}
+
+	@SuppressLint("WrongConstant")
 	public static FaceManager getFaceManagerOrNull(Context context) {
 		if (context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_FACE)) {
 			return (FaceManager) context.getSystemService("face");
@@ -141,7 +140,7 @@ public class ScanActivity extends CameraActivity {
 		}
 	}
 
-	private FaceManager.EnrollmentCallback mEnrollmentCallback
+	private final FaceManager.EnrollmentCallback mEnrollmentCallback
 			= new FaceManager.EnrollmentCallback() {
 
 		@Override
@@ -253,8 +252,6 @@ public class ScanActivity extends CameraActivity {
 						e.printStackTrace();
 					}
 				});
-			} else {
-				startActivity(new Intent(this, EnrollActivity.class).putExtra("faces",encodedFaces));
 			}
 		} else {
 			if (mToken != null) {

@@ -4,19 +4,19 @@
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
-	tools:context=".EnrollActivity">
+	tools:context=".ScanActivity">
 
 	<ImageView
 		android:id="@+id/imageView"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
-		app:tint="?attr/colorAccent"
+		app:tint="?android:attr/colorAccent"
 		app:layout_constraintBottom_toBottomOf="parent"
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent"
 		app:layout_constraintTop_toTopOf="parent"
 		app:layout_constraintVertical_bias="0.05"
-		app:srcCompat="@drawable/baseline_face_retouching_natural_24"
+		android:src="@drawable/baseline_face_retouching_natural_24"
 		android:contentDescription="@null" />
 
 	<TextView
@@ -24,8 +24,8 @@
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:text="@string/face_unlock"
-		android:textAppearance="@style/TextAppearance.MaterialComponents.Headline4"
-		android:textColor="?attr/colorAccent"
+		android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
+		android:textColor="?android:attr/colorAccent"
 		app:layout_constraintEnd_toEndOf="parent"
 		app:layout_constraintStart_toStartOf="parent"
 		app:layout_constraintTop_toBottomOf="@+id/imageView" />

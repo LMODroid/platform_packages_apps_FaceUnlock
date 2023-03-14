@@ -1,8 +1,7 @@
 package com.libremobileos.facedetect;
 
-import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
@@ -30,8 +29,6 @@ import android.view.TextureView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
 import com.libremobileos.yifan.face.AutoFitTextureView;
 import com.libremobileos.yifan.face.ImageUtils;
@@ -43,7 +40,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public abstract class CameraActivity extends AppCompatActivity implements ImageReader.OnImageAvailableListener {
+public abstract class CameraActivity extends Activity implements ImageReader.OnImageAvailableListener {
 
 	private static final String TAG = "Camera2Activity";
 
@@ -187,7 +184,6 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 					} catch (final CameraAccessException e) {
 						Log.e(TAG, "Exception!", e);
 					}
-//					updatePreview();
 				}
 
 				@Override
@@ -340,21 +336,10 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 			}
 
 			setupFaceRecognizer(new Size(width, height));
-
-			// Add permission for camera and let user grant the permission
-			if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-			//	ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
-				return;
-			}
 			manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
-		} catch (CameraAccessException e) {
+		} catch (CameraAccessException | SecurityException e) {
 			e.printStackTrace();
 		}
-		Log.e(TAG, "openCamera X");
-	}
-
-	protected int getImageRotation() {
-		return imageOrientation;
 	}
 
 	private void closeCamera() {
@@ -371,13 +356,11 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Log.e(TAG, "onResume");
 		startBackgroundThread();
 	}
 
 	@Override
 	protected void onPause() {
-		Log.e(TAG, "onPause");
 		closeCamera();
 		stopBackgroundThread();
 		super.onPause();
@@ -389,7 +372,6 @@ public abstract class CameraActivity extends AppCompatActivity implements ImageR
 		for (int i = 0; i < planes.length; ++i) {
 			final ByteBuffer buffer = planes[i].getBuffer();
 			if (yuvBytes[i] == null) {
-				Log.d(TAG, "Initializing buffer " + i + " at size " + buffer.capacity());
 				yuvBytes[i] = new byte[buffer.capacity()];
 			}
 			buffer.get(yuvBytes[i]);

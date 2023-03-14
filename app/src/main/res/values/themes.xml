@@ -1,12 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 	<!-- Base application theme. -->
 	<style name="Theme.FaceDetect" parent="Theme.FaceDetect.Base" />
-	<style name="Theme.FaceDetect.Base" parent="Theme.AppCompat.DayNight">
-		<item name="colorPrimaryDark">@android:color/transparent</item> <!-- Status bar color -->
-		<item name="colorPrimaryVariant">@android:color/transparent</item>
+	<style name="Theme.FaceDetect.Base" parent="@android:style/Theme.DeviceDefault.DayNight">
+		<item name="android:colorPrimaryDark">@android:color/transparent</item> <!-- Status bar color -->
 	</style>
 	<style name="Theme.FaceDetect.NoActionBar" parent="Theme.FaceDetect.Base">
-		<item name="windowActionBar">false</item>
-		<item name="windowNoTitle">true</item>
+		<item name="android:windowActionBar">false</item>
+		<item name="android:windowNoTitle">true</item>
 	</style>
 </resources>
