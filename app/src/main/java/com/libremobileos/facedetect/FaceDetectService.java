@@ -6,6 +6,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.om.IOverlayManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -21,6 +22,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.util.Base64;
 import android.util.Log;
 import android.util.Size;
@@ -48,6 +50,7 @@ public class FaceDetectService extends Service {
 	private final long kDeviceId = 123; // Arbitrary value.
 	private final int kFaceId = 100; // Arbitrary value.
 	private final boolean DEBUG = false;
+	private final String SETTINGS_OVERLAY_PACKAGE = "com.libremobileos.facedetect.settings.overlay";
 
 	private static final int MSG_CHALLENGE_TIMEOUT = 100;
 
@@ -69,6 +72,17 @@ public class FaceDetectService extends Service {
 				Log.d(TAG, "setCallback");
 
 			mCallback = clientCallback;
+
+			mWorkHandler.post(() -> {
+				IOverlayManager overlayManager = IOverlayManager.Stub.asInterface(
+						ServiceManager.getService("overlay" /* Context.OVERLAY_SERVICE */));
+				try {
+					overlayManager.setEnabledExclusiveInCategory(SETTINGS_OVERLAY_PACKAGE, -2 /* USER_CURRENT */);
+				} catch (Exception e) {
+					Log.e(TAG, "Failed to enable settings overlay", e);
+				}
+			});
+
 			OptionalUint64 ret = new OptionalUint64();
 			ret.value = kDeviceId;
 			ret.status = Status.OK;
