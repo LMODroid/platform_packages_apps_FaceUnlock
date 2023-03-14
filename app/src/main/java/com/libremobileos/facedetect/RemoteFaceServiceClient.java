@@ -1,7 +1,6 @@
 package com.libremobileos.facedetect;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.util.Base64;
 import android.util.Log;
 
@@ -13,7 +12,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public abstract class RemoteFaceServiceClient {
@@ -22,8 +20,6 @@ public abstract class RemoteFaceServiceClient {
 
 	public static void connect(Context ctx, String dir, Consumer<RemoteFaceServiceClient> callback) {
 		new Thread(() -> {
-			//TODO replace with remote thing
-			SharedPreferences prefs2 = ctx.getSharedPreferences("faces2", 0);
 			FaceStorageBackend s = new DirectoryFaceStorageBackend(new File(dir + "/faces"));
 			callback.accept(new RemoteFaceServiceClient() {
 
@@ -34,12 +30,11 @@ public abstract class RemoteFaceServiceClient {
 
 				@Override
 				public boolean isSecure() {
-					return prefs2.getBoolean(SECURE, false);
+					return false;
 				}
 
 				@Override
 				public void setSecure(boolean secure) {
-					prefs2.edit().putBoolean(SECURE, secure).apply();
 				}
 
 				@Override
