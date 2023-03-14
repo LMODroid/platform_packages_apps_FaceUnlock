@@ -1,0 +1,8 @@
+<resources>
+	<string name="app_name">FaceDetect</string>
+	<string name="add_face">Add Face</string>
+	<string name="input_name">Input name</string>
+	<string name="ok">OK</string>
+	<string name="tap_to_add_face">Tap anywhere to add face</string>
+	<string name="register_failed">Registering the face failed.</string>
+</resources>

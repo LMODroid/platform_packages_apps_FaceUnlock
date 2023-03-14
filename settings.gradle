@@ -13,5 +13,6 @@ dependencyResolutionManagement {
 	}
 }
 rootProject.name = "FaceDetect"
-include ':app'
 include ':FaceShared'
+include ':exampleApp'
+include ':app'

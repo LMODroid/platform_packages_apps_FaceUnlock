@@ -21,9 +21,9 @@ jobs:
           java-version: 11
           distribution: adopt
       - name: Gradle Build Action
-        run: ./gradlew :app:assembleDebug
+        run: ./gradlew :exampleApp:assembleDebug
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
           name: app-debug.apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: exampleApp/build/outputs/apk/debug/exampleApp-debug.apk
