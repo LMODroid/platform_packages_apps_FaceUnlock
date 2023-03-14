@@ -3,12 +3,16 @@ package com.libremobileos.facedetect;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Base64;
+import android.util.Log;
 
 import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -16,11 +20,11 @@ public abstract class RemoteFaceServiceClient {
 	public static final String FACE = "Face";
 	public static final String SECURE = "secure";
 
-	public static void connect(Context ctx, File dir, Consumer<RemoteFaceServiceClient> callback) {
+	public static void connect(Context ctx, String dir, Consumer<RemoteFaceServiceClient> callback) {
 		new Thread(() -> {
 			//TODO replace with remote thing
 			SharedPreferences prefs2 = ctx.getSharedPreferences("faces2", 0);
-			FaceStorageBackend s = new DirectoryFaceStorageBackend(dir);
+			FaceStorageBackend s = new DirectoryFaceStorageBackend(new File(dir + "/faces"));
 			callback.accept(new RemoteFaceServiceClient() {
 
 				@Override
@@ -40,14 +44,35 @@ public abstract class RemoteFaceServiceClient {
 
 				@Override
 				public boolean unenroll() {
-					return s.delete(FACE);
+					boolean result = s.delete(FACE);
+					if (result) {
+						File f = new File(dir, ".FACE_HAT");
+						if (f.exists()) {
+							f.delete();
+						}
+					}
+					return result;
 				}
 
 				@Override
 				public boolean enroll(String data, byte[] hat) {
 					boolean result = s.register(FACE, FaceDataEncoder.decode(data), true);
 					if (result) {
-						prefs2.edit().putString(FACE, new String(Base64.encode(hat, Base64.URL_SAFE))).apply();
+						File f = new File(dir, ".FACE_HAT");
+						try {
+							if (f.exists()) {
+								f.delete();
+							} else {
+								if (!f.createNewFile())
+									throw new IOException("f.createNewFile() failed");
+							}
+							OutputStreamWriter hatOSW = new OutputStreamWriter(new FileOutputStream(f));
+							hatOSW.write(new String(Base64.encode(hat, Base64.URL_SAFE)));
+							hatOSW.close();
+						} catch (IOException e) {
+							Log.e("RemoteFaceServiceClient", "Failed to write HAT", e);
+							return false;
+						}
 					}
 					return result;
 				}

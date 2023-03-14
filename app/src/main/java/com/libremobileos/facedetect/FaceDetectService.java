@@ -34,7 +34,12 @@ import com.libremobileos.yifan.face.ImageUtils;
 import android.hardware.biometrics.face.V1_0.IBiometricsFace;
 import android.hardware.biometrics.face.V1_0.Status;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -78,6 +83,10 @@ public class FaceDetectService extends Service {
 
 			mUserId = userId;
 			mStorePath = storePath;
+			File facesDir = new File(mStorePath + "/faces");
+			if (!facesDir.exists()) {
+				facesDir.mkdir();
+			}
 
 			return Status.OK;
 		}
@@ -183,8 +192,7 @@ public class FaceDetectService extends Service {
 
 			mWorkHandler.post(() -> {
 				ArrayList<Integer> faceIds = new ArrayList<>();
-				File storeDir = new File(mStorePath);
-				RemoteFaceServiceClient.connect(mContext, storeDir, faced -> {
+				RemoteFaceServiceClient.connect(mContext, mStorePath, faced -> {
 					if (faced.isEnrolled()) {
 						faceIds.add(kFaceId);
 						Log.d(TAG, "enumerate face added");
@@ -208,8 +216,7 @@ public class FaceDetectService extends Service {
 				Log.d(TAG, "remove " + faceId);
 
 			mWorkHandler.post(() -> {
-				File storeDir = new File(mStorePath);
-				RemoteFaceServiceClient.connect(mContext, storeDir, faced -> {
+				RemoteFaceServiceClient.connect(mContext, mStorePath, faced -> {
 					if ((faceId == kFaceId || faceId == 0) && faced.isEnrolled()) {
 						faced.unenroll();
 						ArrayList<Integer> faceIds = new ArrayList<>();
@@ -262,7 +269,7 @@ public class FaceDetectService extends Service {
 			// Store registered Faces
 			// example for in-memory: FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
 			// example for shared preferences: FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
-			FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(new File(mStorePath));
+			FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(new File(mStorePath + "/faces"));
 
 			// Create AI-based face detection
 			faceRecognizer = FaceRecognizer.create(mContext,
@@ -299,12 +306,34 @@ public class FaceDetectService extends Service {
 						mCallback.onAcquired(kDeviceId, mUserId, FaceAcquiredInfo.GOOD, 0);
 						// Do we have any match?
 						if (face.isRecognized()) {
-							SharedPreferences prefs2 = mContext.getSharedPreferences("faces2", 0);
 							ArrayList<Byte> hat = new ArrayList<>();
-							for (byte b : Base64.decode(prefs2.getString(RemoteFaceServiceClient.FACE, ""), Base64.URL_SAFE)) {
-								hat.add(b);
+							File f = new File(mStorePath, ".FACE_HAT");
+							try {
+								if (!f.exists()) {
+									throw new IOException("f.exists() == false");
+								}
+								if (!f.canRead()) {
+									throw new IOException("f.canRead() == false");
+								}
+								try (InputStream inputStream = new FileInputStream(f)) {
+									Log.e("erfan", "hat: " + hat);
+
+									// https://stackoverflow.com/a/35446009
+									ByteArrayOutputStream result = new ByteArrayOutputStream();
+									byte[] buffer = new byte[1024];
+									for (int length; (length = inputStream.read(buffer)) != -1; ) {
+										result.write(buffer, 0, length);
+									}
+									// ignore the warning, api 33-only stuff right there :D
+									String base64hat = result.toString(StandardCharsets.UTF_8.name());
+									for (byte b : Base64.decode(base64hat, Base64.URL_SAFE)) {
+										hat.add(b);
+									}
+									mCallback.onAuthenticated(kDeviceId, kFaceId, mUserId, hat);
+								}
+							} catch (IOException e) {
+								Log.e("Authentication", Log.getStackTraceString(e));
 							}
-							mCallback.onAuthenticated(kDeviceId, kFaceId, mUserId, hat);
 							mCameraService.closeCamera();
 							mCameraService.stopBackgroundThread();
 						}
@@ -344,6 +373,10 @@ public class FaceDetectService extends Service {
 		super.onCreate();
 		mContext = this;
 		mUserId = 0; // TODO: Get real user id
+		File facesDir = new File(mStorePath + "/faces");
+		if (!facesDir.exists()) {
+			facesDir.mkdir();
+		}
 
 		HandlerThread handlerThread = new HandlerThread(TAG, THREAD_PRIORITY_FOREGROUND);
 		handlerThread.start();

@@ -225,9 +225,9 @@ public class ScanActivity extends CameraActivity {
 		if (faces.size() == 10) {
 			String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
 			if (mToken != null) {
-				File storeDir = this.getFilesDir();
+				String storeDir = this.getFilesDir().getPath();
 				try {
-					storeDir = new File(service.getStorePath());
+					storeDir = service.getStorePath();
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
