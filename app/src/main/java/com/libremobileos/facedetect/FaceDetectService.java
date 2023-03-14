@@ -205,7 +205,7 @@ public class FaceDetectService extends Service {
 
 			mWorkHandler.post(() -> {
 				ArrayList<Integer> faceIds = new ArrayList<>();
-				RemoteFaceServiceClient.connect(mContext, mStorePath, faced -> {
+				RemoteFaceServiceClient.connect(mStorePath, faced -> {
 					if (faced.isEnrolled()) {
 						faceIds.add(kFaceId);
 						Log.d(TAG, "enumerate face added");
@@ -229,7 +229,7 @@ public class FaceDetectService extends Service {
 				Log.d(TAG, "remove " + faceId);
 
 			mWorkHandler.post(() -> {
-				RemoteFaceServiceClient.connect(mContext, mStorePath, faced -> {
+				RemoteFaceServiceClient.connect(mStorePath, faced -> {
 					if ((faceId == kFaceId || faceId == 0) && faced.isEnrolled()) {
 						faced.unenroll();
 						ArrayList<Integer> faceIds = new ArrayList<>();

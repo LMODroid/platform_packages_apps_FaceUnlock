@@ -18,7 +18,7 @@ public abstract class RemoteFaceServiceClient {
 	public static final String FACE = "Face";
 	public static final String SECURE = "secure";
 
-	public static void connect(Context ctx, String dir, Consumer<RemoteFaceServiceClient> callback) {
+	public static void connect(String dir, Consumer<RemoteFaceServiceClient> callback) {
 		new Thread(() -> {
 			FaceStorageBackend s = new DirectoryFaceStorageBackend(new File(dir + "/faces"));
 			callback.accept(new RemoteFaceServiceClient() {

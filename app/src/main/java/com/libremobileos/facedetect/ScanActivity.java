@@ -232,7 +232,7 @@ public class ScanActivity extends CameraActivity {
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
-				RemoteFaceServiceClient.connect(this, storeDir, faced -> {
+				RemoteFaceServiceClient.connect(storeDir, faced -> {
 					try {
 						if (!faced.enroll(encodedFaces, mToken)) {
 							service.error(FaceError.UNABLE_TO_PROCESS);
