@@ -70,7 +70,9 @@ public class DirectoryFaceStorageBackend extends FaceStorageBackend {
 				if (!f.createNewFile())
 					throw new IOException("f.createNewFile() failed");
 			}
-			new OutputStreamWriter(new FileOutputStream(f)).write(data);
+			OutputStreamWriter faceOSW = new OutputStreamWriter(new FileOutputStream(f));
+			faceOSW.write(data);
+			faceOSW.close();
 			return true;
 		} catch (IOException e) {
 			Log.e("DirectoryFaceStorageBackend", Log.getStackTraceString(e));

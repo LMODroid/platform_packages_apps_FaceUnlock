@@ -8,6 +8,7 @@ import com.libremobileos.yifan.face.DirectoryFaceStorageBackend;
 import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceStorageBackend;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -15,11 +16,11 @@ public abstract class RemoteFaceServiceClient {
 	public static final String FACE = "Face";
 	public static final String SECURE = "secure";
 
-	public static void connect(Context ctx, Consumer<RemoteFaceServiceClient> callback) {
+	public static void connect(Context ctx, File dir, Consumer<RemoteFaceServiceClient> callback) {
 		new Thread(() -> {
 			//TODO replace with remote thing
 			SharedPreferences prefs2 = ctx.getSharedPreferences("faces2", 0);
-			FaceStorageBackend s = new DirectoryFaceStorageBackend(ctx.getFilesDir());;
+			FaceStorageBackend s = new DirectoryFaceStorageBackend(dir);
 			callback.accept(new RemoteFaceServiceClient() {
 
 				@Override

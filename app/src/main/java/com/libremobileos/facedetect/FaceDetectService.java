@@ -34,6 +34,7 @@ import com.libremobileos.yifan.face.ImageUtils;
 import android.hardware.biometrics.face.V1_0.IBiometricsFace;
 import android.hardware.biometrics.face.V1_0.Status;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -55,6 +56,7 @@ public class FaceDetectService extends Service {
 	private boolean computingDetection = false;
 	private CameraService mCameraService;
 	private int mUserId = 0;
+	private String mStorePath = "/data/vendor_de/0/facedata";
 
 	private class BiometricsFace extends IBiometricsFace.Stub {
 		@Override
@@ -73,6 +75,9 @@ public class FaceDetectService extends Service {
 		public int setActiveUser(int userId, String storePath) {
 			if (DEBUG)
 				Log.d(TAG, "setActiveUser " + userId + " " + storePath);
+
+			mUserId = userId;
+			mStorePath = storePath;
 
 			return Status.OK;
 		}
@@ -178,7 +183,8 @@ public class FaceDetectService extends Service {
 
 			mWorkHandler.post(() -> {
 				ArrayList<Integer> faceIds = new ArrayList<>();
-				RemoteFaceServiceClient.connect(mContext, faced -> {
+				File storeDir = new File(mStorePath);
+				RemoteFaceServiceClient.connect(mContext, storeDir, faced -> {
 					if (faced.isEnrolled()) {
 						faceIds.add(kFaceId);
 						Log.d(TAG, "enumerate face added");
@@ -201,8 +207,9 @@ public class FaceDetectService extends Service {
 			if (DEBUG)
 				Log.d(TAG, "remove " + faceId);
 
-			mWorkHandler.post(() ->
-				RemoteFaceServiceClient.connect(mContext, faced -> {
+			mWorkHandler.post(() -> {
+				File storeDir = new File(mStorePath);
+				RemoteFaceServiceClient.connect(mContext, storeDir, faced -> {
 					if ((faceId == kFaceId || faceId == 0) && faced.isEnrolled()) {
 						faced.unenroll();
 						ArrayList<Integer> faceIds = new ArrayList<>();
@@ -214,8 +221,8 @@ public class FaceDetectService extends Service {
 							e.printStackTrace();
 						}
 					}
-				})
-			);
+				});
+			});
 			return Status.OK;
 		}
 
@@ -255,7 +262,7 @@ public class FaceDetectService extends Service {
 			// Store registered Faces
 			// example for in-memory: FaceStorageBackend faceStorage = new VolatileFaceStorageBackend();
 			// example for shared preferences: FaceStorageBackend faceStorage = new SharedPreferencesFaceStorageBackend(getSharedPreferences("faces", 0));
-			FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(getFilesDir());
+			FaceStorageBackend faceStorage = new DirectoryFaceStorageBackend(new File(mStorePath));
 
 			// Create AI-based face detection
 			faceRecognizer = FaceRecognizer.create(mContext,
@@ -374,6 +381,11 @@ public class FaceDetectService extends Service {
 			if (mCallback != null) {
 				mCallback.onError(kDeviceId, mUserId, error, 0);
 			}
+		}
+
+		@Override
+		public String getStorePath() throws RemoteException {
+			return mStorePath;
 		}
 	};
 

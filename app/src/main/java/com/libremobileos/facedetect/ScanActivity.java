@@ -39,6 +39,7 @@ import com.libremobileos.yifan.face.FaceDetector;
 import com.libremobileos.yifan.face.FaceFinder;
 import com.libremobileos.yifan.face.FaceScanner;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import android.hardware.face.FaceManager;
@@ -224,7 +225,13 @@ public class ScanActivity extends CameraActivity {
 		if (faces.size() == 10) {
 			String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
 			if (mToken != null) {
-				RemoteFaceServiceClient.connect(this, faced -> {
+				File storeDir = this.getFilesDir();
+				try {
+					storeDir = new File(service.getStorePath());
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+				RemoteFaceServiceClient.connect(this, storeDir, faced -> {
 					try {
 						if (!faced.enroll(encodedFaces, mToken)) {
 							service.error(FaceError.UNABLE_TO_PROCESS);
