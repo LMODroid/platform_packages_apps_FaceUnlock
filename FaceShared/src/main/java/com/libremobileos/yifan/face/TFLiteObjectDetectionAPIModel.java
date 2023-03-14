@@ -58,7 +58,7 @@ import org.tensorflow.lite.nnapi.NnApiDelegate;
   // Float model
   private static final float IMAGE_MEAN = 127.5f;
   private static final float IMAGE_STD = 127.5f;
-  private static final String SYSTEM_MODEL_DIR = "/system_ext/etc/face";
+  private static final String SYSTEM_MODEL_DIR = "/system/etc/face";
 
   private boolean isModelQuantized;
   // Config values.

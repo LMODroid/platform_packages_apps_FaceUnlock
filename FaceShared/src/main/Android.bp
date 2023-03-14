@@ -13,26 +13,22 @@ prebuilt_etc {
     name: "detect-class1.tflite",
     src: "assets/detect-class1.tflite",
     sub_dir: "face",
-    system_ext_specific: true,
 }
 
 prebuilt_etc {
     name: "detect-class1.txt",
     src: "assets/detect-class1.txt",
     sub_dir: "face",
-    system_ext_specific: true,
 }
 
 prebuilt_etc {
     name: "mobile_face_net.tflite",
     src: "assets/mobile_face_net.tflite",
     sub_dir: "face",
-    system_ext_specific: true,
 }
 
 prebuilt_etc {
     name: "mobile_face_net.txt",
     src: "assets/mobile_face_net.txt",
     sub_dir: "face",
-    system_ext_specific: true,
 }

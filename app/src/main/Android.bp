@@ -1,0 +1,22 @@
+android_app {
+    name: "LMOFaceUnlock",
+    platform_apis: true,
+    certificate: "platform",
+
+    resource_dirs: ["res"],
+    srcs: [
+        "java/**/*.java",
+        "java/**/*.aidl",
+    ],
+
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.appcompat_appcompat",
+        "androidx.preference_preference",
+        "androidx-constraintlayout_constraintlayout",
+        "com.google.android.material_material",
+        "LMOFaceShared",
+        "android.hardware.biometrics.face-V1.0-java",
+    ],
+    jni_libs : ["libtensorflowlite_jni"],
+}
