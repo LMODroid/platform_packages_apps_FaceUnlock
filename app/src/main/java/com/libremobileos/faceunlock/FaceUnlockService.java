@@ -415,7 +415,7 @@ public class FaceUnlockService extends Service {
 		}
 
 		@Override
-		public String getStorePath() throws RemoteException {
+		public String getStorePath() {
 			return mStorePath;
 		}
 	};
