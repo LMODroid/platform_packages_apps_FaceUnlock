@@ -1,5 +1,5 @@
 java_library_static {
-    name: "LMOFaceShared_java_shared",
+    name: "LMOFaceShared_java",
     sdk_version: "current",
     srcs: ["main/java/**/*.java", "withoutGpu/java/**/*.java"],
     manifest: "main/AndroidManifest.xml",
@@ -9,26 +9,14 @@ java_library_static {
     ],
 }
 
-java_library_static {
-    name: "LMOFaceShared_java",
-    sdk_version: "current",
-    manifest: "main/AndroidManifest.xml",
-    requires: ["detect-class1.tflite", "mobile_face_net.tflite"],
-
-    static_libs: [
-        "LMOFaceShared_java_shared",
-    ],
-}
-
 android_library {
     name: "LMOFaceShared",
     sdk_version: "current",
     manifest: "main/AndroidManifest.xml",
     asset_dirs: ["main/assets"],
-    jni_libs: ["libtensorflowlite_jni"],
 
     static_libs: [
-        "LMOFaceShared_java_shared",
+        "LMOFaceShared_java",
     ],
 }
 
@@ -36,7 +24,6 @@ prebuilt_etc {
     name: "detect-class1.tflite",
     src: "main/assets/detect-class1.tflite",
     sub_dir: "face",
-    requires: ["detect-class1.txt"],
 }
 
 prebuilt_etc {
@@ -49,7 +36,6 @@ prebuilt_etc {
     name: "mobile_face_net.tflite",
     src: "main/assets/mobile_face_net.tflite",
     sub_dir: "face",
-    requires: ["mobile_face_net.txt"],
 }
 
 prebuilt_etc {

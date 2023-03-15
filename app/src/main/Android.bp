@@ -12,7 +12,8 @@ android_app {
     static_libs: [
         "androidx.annotation_annotation",
         "androidx.cardview_cardview",
-        "LMOFaceShared",
+        "LMOFaceShared_java",
         "android.hardware.biometrics.face-V1.0-java",
     ],
+    jni_libs: ["libtensorflowlite_jni"],
 }
