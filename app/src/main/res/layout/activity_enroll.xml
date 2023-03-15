@@ -1,21 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
+	android:orientation="vertical"
+	android:gravity="center"
 	tools:context=".ScanActivity">
 
 	<ImageView
 		android:id="@+id/imageView"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
+		android:layout_marginTop="50dp"
 		android:tint="?android:attr/colorAccent"
-		app:layout_constraintBottom_toBottomOf="parent"
-		app:layout_constraintEnd_toEndOf="parent"
-		app:layout_constraintStart_toStartOf="parent"
-		app:layout_constraintTop_toTopOf="parent"
-		app:layout_constraintVertical_bias="0.05"
 		android:src="@drawable/baseline_face_retouching_natural_24"
 		android:contentDescription="@null" />
 
@@ -25,10 +22,14 @@
 		android:layout_height="wrap_content"
 		android:text="@string/face_unlock"
 		android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
-		android:textColor="?android:attr/colorAccent"
-		app:layout_constraintEnd_toEndOf="parent"
-		app:layout_constraintStart_toStartOf="parent"
-		app:layout_constraintTop_toBottomOf="@+id/imageView" />
+		android:textColor="?android:attr/colorAccent" />
+
+	<FrameLayout
+		android:id="@+id/frameLayout"
+		android:layout_weight="1"
+		android:layout_width="match_parent"
+		android:layout_height="0dp"
+		android:layout_margin="30dp" />
 
 	<Button
 		android:id="@+id/button"
@@ -36,21 +37,8 @@
 		android:layout_height="wrap_content"
 		android:layout_margin="20dp"
 		android:background="@drawable/btn_bg"
+		android:layout_gravity="start"
 		android:shadowRadius="0"
 		android:textColor="?android:attr/textColorPrimaryInverse"
-		android:text="@string/cancel"
-		app:layout_constraintBottom_toBottomOf="parent"
-		app:layout_constraintStart_toStartOf="parent" />
-
-	<FrameLayout
-		android:id="@+id/frameLayout"
-		android:layout_width="0dp"
-		android:layout_height="0dp"
-		android:layout_margin="30dp"
-		app:layout_constraintBottom_toTopOf="@+id/button"
-		app:layout_constraintEnd_toEndOf="parent"
-		app:layout_constraintStart_toStartOf="parent"
-		app:layout_constraintTop_toBottomOf="@+id/textView">
-
-	</FrameLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+		android:text="@string/cancel" />
+</LinearLayout>

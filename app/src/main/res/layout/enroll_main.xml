@@ -30,7 +30,6 @@
 	<androidx.cardview.widget.CardView
 		android:layout_width="300dp"
 		android:layout_height="300dp"
-		android:orientation="vertical"
 		app:cardCornerRadius="360dp">
 
 		<com.libremobileos.yifan.face.AutoFitTextureView
