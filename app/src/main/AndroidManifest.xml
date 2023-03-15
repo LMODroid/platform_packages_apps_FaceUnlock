@@ -21,12 +21,22 @@
 		android:supportsRtl="true"
 		android:theme="@style/Theme.FaceDetect"
 		tools:targetApi="31">
+		<receiver
+			android:directBootAware="true"
+			android:exported="true"
+			android:name=".OnLockedBootCompleteReceiver">
+			<intent-filter>
+				<action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+		</receiver>
 		<activity
 			android:name=".ScanActivity"
 			android:theme="@style/Theme.FaceDetect.NoActionBar"
 			android:exported="false" />
 		<service
 			android:name=".FaceDetectService"
+			android:directBootAware="true"
 			android:exported="true"
 			tools:ignore="ExportedService" />
 	</application>
