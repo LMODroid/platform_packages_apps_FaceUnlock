@@ -19,3 +19,9 @@ android_app {
     jni_libs : ["libtensorflowlite_jni"],
     vintf_fragments: ["manifest_face_lmodroid.xml"],
 }
+
+prebuilt_etc {
+    name: "whitelist_faceunlock.xml",
+    src: "whitelist_faceunlock.xml",
+    sub_dir: "sysconfig",
+}
