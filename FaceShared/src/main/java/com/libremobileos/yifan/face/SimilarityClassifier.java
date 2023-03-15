@@ -21,8 +21,6 @@ import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 
-import androidx.annotation.NonNull;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -96,7 +94,6 @@ import java.util.Locale;
       return new RectF(location);
     }
 
-    @NonNull
     @Override
     public String toString() {
       String resultString = "";

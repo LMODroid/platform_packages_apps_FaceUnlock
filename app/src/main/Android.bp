@@ -15,8 +15,8 @@ android_app {
         "LMOFaceShared",
         "android.hardware.biometrics.face-V1.0-java",
     ],
-    jni_libs : ["libtensorflowlite_jni"],
     vintf_fragments: ["manifest_face_lmodroid.xml"],
+    requires: ["whitelist_faceunlock.xml"],
 }
 
 prebuilt_etc {

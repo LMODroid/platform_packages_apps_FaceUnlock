@@ -24,8 +24,6 @@ import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -157,7 +155,6 @@ public class FaceDetector {
 			return new RectF(location);
 		}
 
-		@NonNull
 		@Override
 		public String toString() {
 			String resultString = "";

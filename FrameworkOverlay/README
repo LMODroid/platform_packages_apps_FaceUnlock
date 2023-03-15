@@ -1,3 +1,0 @@
-Creation process of overlay.apk:
-
-  make KEY=android KEYSTORE=my.keystore

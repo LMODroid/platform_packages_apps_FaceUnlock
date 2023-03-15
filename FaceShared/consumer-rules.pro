@@ -1,1 +1,0 @@
--keep class org.tensorflow.lite.gpu.** { *; }

@@ -28,8 +28,6 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
@@ -296,7 +294,6 @@ public class FaceScanner {
 			return getDistance() < Float.MAX_VALUE;
 		}
 
-		@NonNull
 		@Override
 		public String toString() {
 			String resultString = "";
