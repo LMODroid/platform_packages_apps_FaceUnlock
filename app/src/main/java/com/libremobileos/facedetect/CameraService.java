@@ -152,7 +152,6 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 					} catch (final CameraAccessException e) {
 						Log.e(TAG, "Exception!", e);
 					}
-//					updatePreview();
 				}
 
 				@Override
