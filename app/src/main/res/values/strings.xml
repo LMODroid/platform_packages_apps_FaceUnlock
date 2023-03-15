@@ -1,5 +1,5 @@
 <resources>
-	<string name="app_name">FaceDetect</string>
+	<string name="app_name">FaceUnlock</string>
 	<string name="internal_err">Internal error</string>
 	<string name="face_unlock">Face Unlock</string>
 	<string name="next">Next</string>

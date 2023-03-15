@@ -1,8 +1,12 @@
-package com.libremobileos.facedetect;
+package com.libremobileos.faceunlock;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -13,29 +17,32 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Trace;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
-import android.view.Display;
 import android.view.Surface;
-import android.view.WindowManager;
+import android.view.TextureView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
+import com.libremobileos.yifan.face.AutoFitTextureView;
 import com.libremobileos.yifan.face.ImageUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class CameraService implements ImageReader.OnImageAvailableListener {
+public abstract class CameraActivity extends Activity implements ImageReader.OnImageAvailableListener {
 
-	private static final String TAG = "Camera2Service";
+	private static final String TAG = "Camera2Activity";
 
 	/**
 	 * The camera preview size will be chosen to be the smallest frame by pixel size capable of
@@ -43,6 +50,7 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	 */
 	private static final int MINIMUM_PREVIEW_SIZE = 320;
 
+	private AutoFitTextureView previewView;
 	private Handler mBackgroundHandler;
 	private HandlerThread mBackgroundThread;
 	private CameraDevice cameraDevice;
@@ -58,25 +66,44 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	private Runnable imageConverter;
 	private Bitmap rgbFrameBitmap = null;
 	private Size previewSize;
-	private Size rotatedSize;
-	private final Context mContext;
-	private final CameraCallback mCallback;
 
 	protected final Size desiredInputSize = new Size(640, 480);
 	// The calculated actual processing width & height
-	protected int imageOrientation;
+	protected int width, height, rotatedWidth, rotatedHeight, imageOrientation;
 
-	public interface CameraCallback {
-		void setupFaceRecognizer(Size bitmapSize, int rotation);
-
-		void processImage(Size previewSize, Size rotatedSize, Bitmap rgbBitmap, int rotation);
+	@Override
+	protected void onCreate(@Nullable Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
 	}
 
-	public CameraService(Context context, CameraCallback callback) {
-		mContext = context;
-		mCallback = callback;
+	protected void connectToCam(AutoFitTextureView pv) {
+		previewView = pv;
+
+		previewView.setSurfaceTextureListener(textureListener);
 	}
 
+	private final TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+		@Override
+		public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+			//open your camera here
+			openCamera();
+		}
+
+		@Override
+		public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+			// Transform you image captured size according to the surface width and height
+			configureTransform(width, height);
+		}
+
+		@Override
+		public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+			return false;
+		}
+
+		@Override
+		public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+		}
+	};
 	private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
 		@Override
 		public void onOpened(CameraDevice camera) {
@@ -98,14 +125,13 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		}
 	};
 
-	public void startBackgroundThread() {
+	private void startBackgroundThread() {
 		mBackgroundThread = new HandlerThread("Camera Background");
 		mBackgroundThread.start();
 		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 	}
 
-	public void stopBackgroundThread() {
-		closeCamera();
+	private void stopBackgroundThread() {
 		mBackgroundThread.quitSafely();
 		try {
 			mBackgroundThread.join();
@@ -118,15 +144,21 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 
 	private void createCameraPreview() {
 		try {
+			SurfaceTexture texture = previewView.getSurfaceTexture();
+			assert texture != null;
+			texture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
+			Surface surface = new Surface(texture);
+			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+			captureRequestBuilder.addTarget(surface);
+
 			previewReader =
 					ImageReader.newInstance(
 							previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
 
 			previewReader.setOnImageAvailableListener(this, mBackgroundHandler);
-			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
 			captureRequestBuilder.addTarget(previewReader.getSurface());
 
-			cameraDevice.createCaptureSession(Collections.singletonList(previewReader.getSurface()),
+			cameraDevice.createCaptureSession(Arrays.asList(surface, previewReader.getSurface()),
 					new CameraCaptureSession.StateCallback() {
 				@Override
 				public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
@@ -161,6 +193,39 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		} catch (CameraAccessException e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * Configures the necessary {@link Matrix} transformation to `mTextureView`. This method should be
+	 * called after the camera preview size is determined in setUpCameraOutputs and also the size of
+	 * `mTextureView` is fixed.
+	 *
+	 * @param viewWidth The width of `mTextureView`
+	 * @param viewHeight The height of `mTextureView`
+	 */
+	private void configureTransform(final int viewWidth, final int viewHeight) {
+		if (null == previewView || null == previewSize) {
+			return;
+		}
+		final int rotation = getWindowManager().getDefaultDisplay().getRotation();
+		final Matrix matrix = new Matrix();
+		final RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+		final RectF bufferRect = new RectF(0, 0, previewSize.getHeight(), previewSize.getWidth());
+		final float centerX = viewRect.centerX();
+		final float centerY = viewRect.centerY();
+		if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+			bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+			matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+			final float scale =
+					Math.max(
+							(float) viewHeight / previewSize.getHeight(),
+							(float) viewWidth / previewSize.getWidth());
+			matrix.postScale(scale, scale, centerX, centerY);
+			matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+		} else if (Surface.ROTATION_180 == rotation) {
+			matrix.postRotate(180, centerX, centerY);
+		}
+		previewView.setTransform(matrix);
 	}
 
 	/** Compares two {@code Size}s based on their areas. */
@@ -223,8 +288,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		}
 	}
 
-	public void openCamera() {
-		CameraManager manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+	private void openCamera() {
+		CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
 		Log.e(TAG, "is camera open");
 		try {
 			String cameraId = manager.getCameraIdList()[0];
@@ -248,23 +313,36 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 					chooseOptimalSize(
 							map.getOutputSizes(SurfaceTexture.class),
 							desiredInputSize.getWidth(), desiredInputSize.getHeight());
-			rotatedSize = previewSize;
+			width = previewSize.getWidth();
+			height = previewSize.getHeight();
+			configureTransform(width, height);
+
+			final int orientation = getResources().getConfiguration().orientation;
+			if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+				previewView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
+			} else {
+				previewView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
+			}
 
 			imageOrientation = sensorOrientation + getScreenOrientation();
-			rgbFrameBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
+			rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 
 			if (imageOrientation % 180 != 0) {
-				rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+				rotatedHeight = width;
+				rotatedWidth = height;
+			} else {
+				rotatedWidth = width;
+				rotatedHeight = height;
 			}
-			mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
 
-			manager.openCamera(cameraId, stateCallback, null);
+			setupFaceRecognizer(new Size(width, height));
+			manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
 		} catch (CameraAccessException | SecurityException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void closeCamera() {
+	private void closeCamera() {
 		if (null != cameraDevice) {
 			cameraDevice.close();
 			cameraDevice = null;
@@ -273,6 +351,19 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 			previewReader.close();
 			previewReader = null;
 		}
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		startBackgroundThread();
+	}
+
+	@Override
+	protected void onPause() {
+		closeCamera();
+		stopBackgroundThread();
+		super.onPause();
 	}
 
 	private void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
@@ -292,9 +383,12 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		return rgbBytes;
 	}
 
+	protected Bitmap getBitmap() {
+		return rgbFrameBitmap;
+	}
+
 	private int getScreenOrientation() {
-		Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-		switch (display.getRotation()) {
+		switch (getWindowManager().getDefaultDisplay().getRotation()) {
 			case Surface.ROTATION_270:
 				return 270;
 			case Surface.ROTATION_180:
@@ -306,7 +400,7 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		}
 	}
 
-	public void readyForNextImage() {
+	protected void readyForNextImage() {
 		if (postInferenceCallback != null) {
 			postInferenceCallback.run();
 		}
@@ -359,7 +453,7 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 
 			rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
-			mCallback.processImage(previewSize, rotatedSize, rgbFrameBitmap, imageOrientation);
+			runOnUiThread(this::processImage);
 		} catch (final Exception e) {
 			Log.e(TAG, "Exception!", e);
 			Trace.endSection();
@@ -367,4 +461,9 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		}
 		Trace.endSection();
 	}
+
+	protected abstract void setupFaceRecognizer(final Size bitmapSize);
+
+	protected abstract void processImage();
+
 }

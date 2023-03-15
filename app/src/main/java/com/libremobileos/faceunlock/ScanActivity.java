@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.libremobileos.facedetect;
+package com.libremobileos.faceunlock;
 
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
@@ -59,7 +59,7 @@ public class ScanActivity extends CameraActivity {
 
 	private boolean computingDetection = false;
 
-	private IFaceDetectService service;
+	private IFaceUnlockService service;
 
 	protected byte[] mToken;
 	protected int mUserId;
@@ -80,7 +80,7 @@ public class ScanActivity extends CameraActivity {
 	private final ServiceConnection connection = new ServiceConnection() {
 		@Override
 		public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-			service = IFaceDetectService.Stub.asInterface(iBinder);
+			service = IFaceUnlockService.Stub.asInterface(iBinder);
 		}
 
 		@Override
@@ -90,7 +90,7 @@ public class ScanActivity extends CameraActivity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		Intent intent = new Intent(this, FaceDetectService.class);
+		Intent intent = new Intent(this, FaceUnlockService.class);
 		bindService(intent, connection, Context.BIND_AUTO_CREATE);
 	}
 

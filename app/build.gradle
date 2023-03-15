@@ -9,11 +9,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-	namespace 'com.libremobileos.facedetect'
+	namespace 'com.libremobileos.faceunlock'
 	compileSdk 33
 
 	defaultConfig {
-		applicationId "com.libremobileos.facedetect"
+		applicationId "com.libremobileos.faceunlock"
 		minSdk 31
 		targetSdk 33
 		versionCode 1

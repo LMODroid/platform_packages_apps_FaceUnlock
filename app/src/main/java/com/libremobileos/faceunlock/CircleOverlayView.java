@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.libremobileos.facedetect;
+package com.libremobileos.faceunlock;
 
 import android.content.Context;
 import android.graphics.Canvas;

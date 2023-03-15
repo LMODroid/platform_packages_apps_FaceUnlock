@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <!--suppress ALL -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.libremobileos.facedetect.settings.overlay">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.libremobileos.faceunlock.settings.overlay">
     <overlay android:isStatic="true" android:priority="9998" android:targetPackage="com.android.settings"/>
-    <application android:hasCode="false" android:label="FaceDetect Settings overlay"/>
+    <application android:hasCode="false" android:label="FaceUnlock Settings overlay"/>
 </manifest>

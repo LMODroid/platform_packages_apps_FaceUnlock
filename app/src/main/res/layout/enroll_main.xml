@@ -39,7 +39,7 @@
 			android:layout_height="400dp"
 			android:layout_gravity="center" />
 
-		<com.libremobileos.facedetect.CircleOverlayView
+		<com.libremobileos.faceunlock.CircleOverlayView
 			android:id="@+id/overlay"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent"

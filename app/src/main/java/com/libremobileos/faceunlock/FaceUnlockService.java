@@ -1,4 +1,4 @@
-package com.libremobileos.facedetect;
+package com.libremobileos.faceunlock;
 
 import static android.os.Process.THREAD_PRIORITY_FOREGROUND;
 
@@ -42,12 +42,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class FaceDetectService extends Service {
+public class FaceUnlockService extends Service {
 	private final String TAG = "FaceUnlockService";
 	private final long kDeviceId = 123; // Arbitrary value.
 	private final int kFaceId = 100; // Arbitrary value.
 	private final boolean DEBUG = false;
-	private final String SETTINGS_OVERLAY_PACKAGE = "com.libremobileos.facedetect.settings.overlay";
+	private final String SETTINGS_OVERLAY_PACKAGE = "com.libremobileos.faceunlock.settings.overlay";
 
 	private static final int MSG_CHALLENGE_TIMEOUT = 100;
 
@@ -399,7 +399,7 @@ public class FaceDetectService extends Service {
 		}
 	}
 
-	private final IFaceDetectService.Stub binder = new IFaceDetectService.Stub() {
+	private final IFaceUnlockService.Stub binder = new IFaceUnlockService.Stub() {
 		@Override
 		public void enrollResult(int remaining) throws RemoteException {
 			if (mCallback != null) {
