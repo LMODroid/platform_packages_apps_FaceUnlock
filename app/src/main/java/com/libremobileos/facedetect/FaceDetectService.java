@@ -2,9 +2,6 @@ package com.libremobileos.facedetect;
 
 import static android.os.Process.THREAD_PRIORITY_FOREGROUND;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.om.IOverlayManager;
 import android.content.Context;
@@ -400,17 +397,6 @@ public class FaceDetectService extends Service {
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
-
-		// Create the Foreground Service
-		NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-		String channelId = createNotificationChannel(notificationManager);
-		Notification.Builder notificationBuilder = new Notification.Builder(this, channelId);
-		Notification notification = notificationBuilder.setOngoing(true)
-				.setSmallIcon(R.mipmap.ic_launcher)
-				.setCategory(Notification.CATEGORY_SERVICE)
-				.build();
-
-		startForeground(101, notification);
 	}
 
 	private final IFaceDetectService.Stub binder = new IFaceDetectService.Stub() {
@@ -437,16 +423,5 @@ public class FaceDetectService extends Service {
 	@Override
 	public IBinder onBind(Intent intent) {
 		return binder;
-	}
-
-	private String createNotificationChannel(NotificationManager notificationManager){
-		String channelId = "my_service_channelid";
-		String channelName = "My Foreground Service";
-		NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
-		// omitted the LED color
-		channel.setImportance(NotificationManager.IMPORTANCE_NONE);
-		channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-		notificationManager.createNotificationChannel(channel);
-		return channelId;
 	}
 }
