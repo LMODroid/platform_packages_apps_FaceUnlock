@@ -16,8 +16,6 @@
 
 package com.libremobileos.yifan.face;
 
-import androidx.annotation.Nullable;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
@@ -173,10 +171,10 @@ public abstract class FaceStorageBackend {
 	 */
 	protected abstract boolean deleteInternal(String name);
 
-	/* package-private */ @Nullable Set<String> getNamesCached() {
+	/* package-private */ Set<String> getNamesCached() {
 		return cachedNames;
 	}
-	/* package-private */ @Nullable float[][] getCached(String name) {
+	/* package-private */ float[][] getCached(String name) {
 		return cachedData.get(name);
 	}
 	private void flushCache() {
