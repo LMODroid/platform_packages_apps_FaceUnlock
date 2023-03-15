@@ -15,12 +15,4 @@ android_app {
         "LMOFaceShared",
         "android.hardware.biometrics.face-V1.0-java",
     ],
-    vintf_fragments: ["manifest_face_lmodroid.xml"],
-    requires: ["whitelist_faceunlock.xml"],
-}
-
-prebuilt_etc {
-    name: "whitelist_faceunlock.xml",
-    src: "whitelist_faceunlock.xml",
-    sub_dir: "sysconfig",
 }

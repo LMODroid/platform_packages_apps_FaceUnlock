@@ -16,19 +16,20 @@
 
 package com.libremobileos.faceunlock;
 
+import static com.android.internal.libremobileos.faceunlock.FaceUnlockManager.SERVICE_NAME;
+
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.util.Pair;
 import android.util.Size;
-import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -38,8 +39,8 @@ import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceDetector;
 import com.libremobileos.yifan.face.FaceFinder;
 import com.libremobileos.yifan.face.FaceScanner;
+import com.android.internal.libremobileos.faceunlock.IFaceUnlockManager;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import android.hardware.face.FaceManager;
@@ -59,8 +60,7 @@ public class ScanActivity extends CameraActivity {
 
 	private boolean computingDetection = false;
 
-	private IFaceUnlockService service;
-
+	private IFaceUnlockManager faceUnlockManager;
 	protected byte[] mToken;
 	protected int mUserId;
 	protected int mSensorId;
@@ -77,23 +77,6 @@ public class ScanActivity extends CameraActivity {
 	public static final String EXTRA_KEY_REQUIRE_VISION = "accessibility_vision";
 	public static final String EXTRA_KEY_REQUIRE_DIVERSITY = "accessibility_diversity";
 
-	private final ServiceConnection connection = new ServiceConnection() {
-		@Override
-		public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-			service = IFaceUnlockService.Stub.asInterface(iBinder);
-		}
-
-		@Override
-		public void onServiceDisconnected(ComponentName componentName) {}
-	};
-
-	@Override
-	protected void onStart() {
-		super.onStart();
-		Intent intent = new Intent(this, FaceUnlockService.class);
-		bindService(intent, connection, Context.BIND_AUTO_CREATE);
-	}
-
 	@Override
 	protected void onCreate(@Nullable Bundle savedInstanceState) {
 		// Initialize basic views
@@ -106,6 +89,10 @@ public class ScanActivity extends CameraActivity {
 		subText = f.findViewById(R.id.textView);
 		subText.setText(R.string.scan_face_now);
 		findViewById(R.id.button).setOnClickListener(v -> finish());
+
+		IBinder b = ServiceManager.getService(SERVICE_NAME);
+		faceUnlockManager = IFaceUnlockManager.Stub.asInterface(b);
+
 		mToken = getIntent().getByteArrayExtra(EXTRA_KEY_CHALLENGE_TOKEN);
 		mChallenge = getIntent().getLongExtra(EXTRA_KEY_CHALLENGE, -1L);
 		mSensorId = getIntent().getIntExtra(EXTRA_KEY_SENSOR_ID, -1);
@@ -228,16 +215,16 @@ public class ScanActivity extends CameraActivity {
 			if (mToken != null) {
 				String storeDir = this.getFilesDir().getPath();
 				try {
-					storeDir = service.getStorePath();
+					storeDir = faceUnlockManager.getStorePath();
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
 				RemoteFaceServiceClient.connect(storeDir, faced -> {
 					try {
 						if (!faced.enroll(encodedFaces, mToken)) {
-							service.error(FaceError.UNABLE_TO_PROCESS);
+							faceUnlockManager.error(FaceError.UNABLE_TO_PROCESS);
 						} else {
-							service.enrollResult(0);
+							faceUnlockManager.enrollResult(0);
 						}
 						final Intent intent = new Intent();
 						ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
@@ -263,7 +250,7 @@ public class ScanActivity extends CameraActivity {
 		} else {
 			if (mToken != null) {
 				try {
-					service.enrollResult(10 - faces.size());
+					faceUnlockManager.enrollResult(10 - faces.size());
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
