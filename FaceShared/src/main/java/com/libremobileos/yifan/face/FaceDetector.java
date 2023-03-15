@@ -189,7 +189,10 @@ public class FaceDetector {
 	 * @see #create(Context, float)
 	 */
 	public static FaceDetector create(Context context, float minConfidence, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
-		return new FaceDetector(context.getAssets(), minConfidence, hwAcceleration, enhancedHwAcceleration, numThreads);
+		AssetManager assetmanager = null;
+		if (context != null)
+			assetmanager = context.getAssets();
+		return new FaceDetector(assetmanager, minConfidence, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
 	/**

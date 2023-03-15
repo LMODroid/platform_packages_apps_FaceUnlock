@@ -400,7 +400,10 @@ public class FaceScanner {
 	 * @see #create(Context)
 	 */
 	public static FaceScanner create(Context context, boolean hwAcceleration, boolean enhancedHwAcceleration, int numThreads) {
-		return new FaceScanner(context.getAssets(), hwAcceleration, enhancedHwAcceleration, numThreads);
+		AssetManager assetmanager = null;
+		if (context != null)
+			assetmanager = context.getAssets();
+		return new FaceScanner(assetmanager, hwAcceleration, enhancedHwAcceleration, numThreads);
 	}
 
 	/**
