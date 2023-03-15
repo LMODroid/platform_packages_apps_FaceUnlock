@@ -7,3 +7,9 @@ java_binary {
     ],
     vintf_fragments: ["manifest_face_lmodroid.xml"],
 }
+
+prebuilt_etc {
+    name: "LMOFaceHalAdapterService.rc",
+    src: "LMOFaceHalAdapterService.rc",
+    sub_dir: "init",
+}
