@@ -1,0 +1,9 @@
+java_binary {
+    name: "LMOFaceHalAdapterService",
+    wrapper: "LMOFaceHalAdapterService",
+    srcs: ["java/**/*.java"],
+    static_libs: [
+        "android.hardware.biometrics.face-V1.0-java",
+    ],
+    vintf_fragments: ["manifest_face_lmodroid.xml"],
+}

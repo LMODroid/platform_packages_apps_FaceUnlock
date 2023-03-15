@@ -1,0 +1,7 @@
+#!/system/bin/sh
+#
+# Script to start "LMOFaceHalAdapterService" on the device
+#
+base=/system
+export CLASSPATH=$base/framework/LMOFaceHalAdapterService.jar
+exec app_process $base/bin com.libremobileos.faceunlock.FaceHalAdapterService "$@"
