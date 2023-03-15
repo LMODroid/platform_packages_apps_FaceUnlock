@@ -1,11 +1,11 @@
 /*
- * Copyright 2023 LibreMobileOS
+ * Copyright (C) 2023 LibreMobileOS Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package com.libremobileos.faceunlock;
+package com.libremobileos.faceunlock.server;
 
-import android.app.Activity;
+import android.annotation.NonNull;
 import android.content.Context;
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -33,32 +30,27 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Trace;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
+import android.view.Display;
 import android.view.Surface;
-import android.view.TextureView;
+import android.view.WindowManager;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import com.libremobileos.yifan.face.AutoFitTextureView;
 import com.libremobileos.yifan.face.ImageUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public abstract class CameraActivity extends Activity implements ImageReader.OnImageAvailableListener {
+public class CameraService implements ImageReader.OnImageAvailableListener {
 
-	private static final String TAG = "Camera2Activity";
+	private static final String TAG = "Camera2Service";
 
 	/**
 	 * The camera preview size will be chosen to be the smallest frame by pixel size capable of
@@ -66,7 +58,6 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 	 */
 	private static final int MINIMUM_PREVIEW_SIZE = 320;
 
-	private AutoFitTextureView previewView;
 	private Handler mBackgroundHandler;
 	private HandlerThread mBackgroundThread;
 	private CameraDevice cameraDevice;
@@ -82,44 +73,25 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 	private Runnable imageConverter;
 	private Bitmap rgbFrameBitmap = null;
 	private Size previewSize;
+	private Size rotatedSize;
+	private final Context mContext;
+	private final CameraCallback mCallback;
 
 	protected final Size desiredInputSize = new Size(640, 480);
 	// The calculated actual processing width & height
-	protected int width, height, rotatedWidth, rotatedHeight, imageOrientation;
+	protected int imageOrientation;
 
-	@Override
-	protected void onCreate(@Nullable Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+	public interface CameraCallback {
+		void setupFaceRecognizer(Size bitmapSize, int rotation);
+
+		void processImage(Size previewSize, Size rotatedSize, Bitmap rgbBitmap, int rotation);
 	}
 
-	protected void connectToCam(AutoFitTextureView pv) {
-		previewView = pv;
-
-		previewView.setSurfaceTextureListener(textureListener);
+	public CameraService(Context context, CameraCallback callback) {
+		mContext = context;
+		mCallback = callback;
 	}
 
-	private final TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
-		@Override
-		public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-			//open your camera here
-			openCamera();
-		}
-
-		@Override
-		public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-			// Transform you image captured size according to the surface width and height
-			configureTransform(width, height);
-		}
-
-		@Override
-		public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-			return false;
-		}
-
-		@Override
-		public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-		}
-	};
 	private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
 		@Override
 		public void onOpened(CameraDevice camera) {
@@ -141,13 +113,14 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 		}
 	};
 
-	private void startBackgroundThread() {
+	public void startBackgroundThread() {
 		mBackgroundThread = new HandlerThread("Camera Background");
 		mBackgroundThread.start();
 		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 	}
 
-	private void stopBackgroundThread() {
+	public void stopBackgroundThread() {
+		closeCamera();
 		mBackgroundThread.quitSafely();
 		try {
 			mBackgroundThread.join();
@@ -160,88 +133,49 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 
 	private void createCameraPreview() {
 		try {
-			SurfaceTexture texture = previewView.getSurfaceTexture();
-			assert texture != null;
-			texture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
-			Surface surface = new Surface(texture);
-			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-			captureRequestBuilder.addTarget(surface);
-
 			previewReader =
 					ImageReader.newInstance(
 							previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
 
 			previewReader.setOnImageAvailableListener(this, mBackgroundHandler);
+			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
 			captureRequestBuilder.addTarget(previewReader.getSurface());
 
-			cameraDevice.createCaptureSession(Arrays.asList(surface, previewReader.getSurface()),
+			cameraDevice.createCaptureSession(Collections.singletonList(previewReader.getSurface()),
 					new CameraCaptureSession.StateCallback() {
-				@Override
-				public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
-					//The camera is already closed
-					if (null == cameraDevice) {
-						return;
-					}
-					// When the session is ready, we start displaying the preview.
-					cameraCaptureSessions = cameraCaptureSession;
-					try {
-						// Auto focus should be continuous for camera preview.
-						captureRequestBuilder.set(
-								CaptureRequest.CONTROL_AF_MODE,
-								CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-						// Flash is automatically enabled when necessary.
-						captureRequestBuilder.set(
-								CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+						@Override
+						public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+							//The camera is already closed
+							if (null == cameraDevice) {
+								return;
+							}
+							// When the session is ready, we start displaying the preview.
+							cameraCaptureSessions = cameraCaptureSession;
+							try {
+								// Auto focus should be continuous for camera preview.
+								captureRequestBuilder.set(
+										CaptureRequest.CONTROL_AF_MODE,
+										CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+								// Flash is automatically enabled when necessary.
+								captureRequestBuilder.set(
+										CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
 
-						// Finally, we start displaying the camera preview.
-						captureRequest = captureRequestBuilder.build();
-						cameraCaptureSessions.setRepeatingRequest(
-								captureRequest, null, mBackgroundHandler);
-					} catch (final CameraAccessException e) {
-						Log.e(TAG, "Exception!", e);
-					}
-				}
+								// Finally, we start displaying the camera preview.
+								captureRequest = captureRequestBuilder.build();
+								cameraCaptureSessions.setRepeatingRequest(
+										captureRequest, null, mBackgroundHandler);
+							} catch (final CameraAccessException e) {
+								Log.e(TAG, "Exception!", e);
+							}
+						}
 
-				@Override
-				public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-				}
-			}, null);
+						@Override
+						public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+						}
+					}, null);
 		} catch (CameraAccessException e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Configures the necessary {@link Matrix} transformation to `mTextureView`. This method should be
-	 * called after the camera preview size is determined in setUpCameraOutputs and also the size of
-	 * `mTextureView` is fixed.
-	 *
-	 * @param viewWidth The width of `mTextureView`
-	 * @param viewHeight The height of `mTextureView`
-	 */
-	private void configureTransform(final int viewWidth, final int viewHeight) {
-		if (null == previewView || null == previewSize) {
-			return;
-		}
-		final int rotation = getWindowManager().getDefaultDisplay().getRotation();
-		final Matrix matrix = new Matrix();
-		final RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-		final RectF bufferRect = new RectF(0, 0, previewSize.getHeight(), previewSize.getWidth());
-		final float centerX = viewRect.centerX();
-		final float centerY = viewRect.centerY();
-		if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
-			bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-			matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
-			final float scale =
-					Math.max(
-							(float) viewHeight / previewSize.getHeight(),
-							(float) viewWidth / previewSize.getWidth());
-			matrix.postScale(scale, scale, centerX, centerY);
-			matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-		} else if (Surface.ROTATION_180 == rotation) {
-			matrix.postRotate(180, centerX, centerY);
-		}
-		previewView.setTransform(matrix);
 	}
 
 	/** Compares two {@code Size}s based on their areas. */
@@ -304,8 +238,8 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 		}
 	}
 
-	private void openCamera() {
-		CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+	public void openCamera() {
+		CameraManager manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
 		Log.e(TAG, "is camera open");
 		try {
 			String cameraId = manager.getCameraIdList()[0];
@@ -329,36 +263,23 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 					chooseOptimalSize(
 							map.getOutputSizes(SurfaceTexture.class),
 							desiredInputSize.getWidth(), desiredInputSize.getHeight());
-			width = previewSize.getWidth();
-			height = previewSize.getHeight();
-			configureTransform(width, height);
-
-			final int orientation = getResources().getConfiguration().orientation;
-			if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-				previewView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
-			} else {
-				previewView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
-			}
+			rotatedSize = previewSize;
 
 			imageOrientation = sensorOrientation + getScreenOrientation();
-			rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+			rgbFrameBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
 
 			if (imageOrientation % 180 != 0) {
-				rotatedHeight = width;
-				rotatedWidth = height;
-			} else {
-				rotatedWidth = width;
-				rotatedHeight = height;
+				rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
 			}
+			mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
 
-			setupFaceRecognizer(new Size(width, height));
-			manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
+			manager.openCamera(cameraId, stateCallback, null);
 		} catch (CameraAccessException | SecurityException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void closeCamera() {
+	public void closeCamera() {
 		if (null != cameraDevice) {
 			cameraDevice.close();
 			cameraDevice = null;
@@ -367,19 +288,6 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 			previewReader.close();
 			previewReader = null;
 		}
-	}
-
-	@Override
-	protected void onResume() {
-		super.onResume();
-		startBackgroundThread();
-	}
-
-	@Override
-	protected void onPause() {
-		closeCamera();
-		stopBackgroundThread();
-		super.onPause();
 	}
 
 	private void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
@@ -399,12 +307,9 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 		return rgbBytes;
 	}
 
-	protected Bitmap getBitmap() {
-		return rgbFrameBitmap;
-	}
-
 	private int getScreenOrientation() {
-		switch (getWindowManager().getDefaultDisplay().getRotation()) {
+		Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+		switch (display.getRotation()) {
 			case Surface.ROTATION_270:
 				return 270;
 			case Surface.ROTATION_180:
@@ -416,7 +321,7 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 		}
 	}
 
-	protected void readyForNextImage() {
+	public void readyForNextImage() {
 		if (postInferenceCallback != null) {
 			postInferenceCallback.run();
 		}
@@ -469,7 +374,7 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 
 			rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
-			runOnUiThread(this::processImage);
+			mCallback.processImage(previewSize, rotatedSize, rgbFrameBitmap, imageOrientation);
 		} catch (final Exception e) {
 			Log.e(TAG, "Exception!", e);
 			Trace.endSection();
@@ -477,9 +382,4 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 		}
 		Trace.endSection();
 	}
-
-	protected abstract void setupFaceRecognizer(final Size bitmapSize);
-
-	protected abstract void processImage();
-
 }

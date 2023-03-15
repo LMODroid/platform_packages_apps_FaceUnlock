@@ -16,7 +16,7 @@
 
 package com.libremobileos.faceunlock;
 
-import static com.android.internal.libremobileos.faceunlock.FaceUnlockManager.SERVICE_NAME;
+import static com.libremobileos.faceunlock.client.FaceUnlockManager.SERVICE_NAME;
 
 import android.annotation.SuppressLint;
 import android.content.ComponentName;
@@ -39,7 +39,8 @@ import com.libremobileos.yifan.face.FaceDataEncoder;
 import com.libremobileos.yifan.face.FaceDetector;
 import com.libremobileos.yifan.face.FaceFinder;
 import com.libremobileos.yifan.face.FaceScanner;
-import com.android.internal.libremobileos.faceunlock.IFaceUnlockManager;
+
+import com.libremobileos.faceunlock.client.IFaceUnlockManager;
 
 import java.util.ArrayList;
 import java.util.List;

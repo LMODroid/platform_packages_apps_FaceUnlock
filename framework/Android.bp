@@ -1,0 +1,21 @@
+java_library_static {
+    name: "LMOFaceClient",
+    platform_apis: true,
+    srcs: ["client/**/*.java", "client/**/*.aidl"],
+    aidl: {
+        include_dirs: [
+            "packages/apps/FaceUnlock/framework/client",
+        ],
+    },
+}
+
+java_library_static {
+    name: "LMOFaceServer",
+    platform_apis: true,
+    srcs: ["server/**/*.java"],
+    static_libs: [
+        "LMOFaceClient",
+        "LMOFaceShared_java",
+        "android.hardware.biometrics.face-V1.0-java",
+    ],
+}

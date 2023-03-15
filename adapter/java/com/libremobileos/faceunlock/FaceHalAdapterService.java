@@ -11,8 +11,8 @@ import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.util.Log;
 
-import com.android.internal.libremobileos.faceunlock.IFaceHalService;
-import com.android.internal.libremobileos.faceunlock.IFaceHalServiceCallback;
+import com.libremobileos.faceunlock.client.IFaceHalService;
+import com.libremobileos.faceunlock.client.IFaceHalServiceCallback;
 
 import java.util.ArrayList;
 

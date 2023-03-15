@@ -4,8 +4,10 @@ java_binary {
     srcs: ["java/**/*.java"],
     static_libs: [
         "android.hardware.biometrics.face-V1.0-java",
+        "LMOFaceClient",
     ],
     vintf_fragments: ["manifest_face_lmodroid.xml"],
+    required: ["LMOFaceHalAdapterService.rc"],
 }
 
 prebuilt_etc {
