@@ -1,8 +1,21 @@
 java_library_static {
+    name: "LMOFaceShared_java",
+    sdk_version: "current",
+    srcs: ["main/java/**/*.java", "withoutGpu/java/**/*.java"],
+    manifest: "main/AndroidManifest.xml",
+
+    static_libs: [
+        "androidx.annotation_annotation",
+        "tensorflowlite_java",
+    ],
+}
+
+android_library {
     name: "LMOFaceShared",
     sdk_version: "current",
     srcs: ["main/java/**/*.java", "withoutGpu/java/**/*.java"],
     manifest: "main/AndroidManifest.xml",
+    asset_dirs: ["main/assets"],
 
     static_libs: [
         "androidx.annotation_annotation",
