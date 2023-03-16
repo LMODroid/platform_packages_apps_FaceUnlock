@@ -19,7 +19,7 @@
 
 namespace android::hardware::biometrics::face::implementation {
 
-BiometricsFace::BiometricsFace(sp<IFaceHalService> faceHalService) : mFaceHalService(faceHalService) {}
+BiometricsFace::BiometricsFace(IFaceHalService faceHalService) : mFaceHalService(faceHalService) {}
 
 Return<Status> intToStatus(int32_t error) {
     switch (error) {
@@ -50,7 +50,7 @@ Return<void> BiometricsFace::setCallback(const sp<IBiometricsFaceClientCallback>
 
 Return<Status> BiometricsFace::setActiveUser(int32_t userId, const hidl_string& storePath) {
     int32_t ret = 0;
-    mFaceHalService->setActiveUser(userId, android::String16(storePath.c_str()), &ret);
+    mFaceHalService->setActiveUser(userId, storePath.c_str(), &ret);
     return intToStatus(ret);
 }
 

@@ -24,20 +24,20 @@ class FaceHalServiceCallback : public BnFaceHalServiceCallback {
 public:
     FaceHalServiceCallback(sp<IBiometricsFaceClientCallback>);
 
-    // Methods from ::com::libremobileos::faceunlock::client::IFaceHalServiceCallback follow.
-    ::android::binder::Status onEnrollResult(int64_t deviceId, int32_t faceId, int32_t userId, int32_t remaining) override;
+    // Methods from ::aidl::com::libremobileos::faceunlock::client::IFaceHalServiceCallback follow.
+    ::ndk::ScopedAStatus onEnrollResult(int64_t deviceId, int32_t faceId, int32_t userId, int32_t remaining) override;
 
-    ::android::binder::Status onAuthenticated(int64_t deviceId, int32_t faceId, int32_t userId, const ::std::vector<uint8_t> &token) override;
+    ::ndk::ScopedAStatus onAuthenticated(int64_t deviceId, int32_t faceId, int32_t userId, const ::std::vector<uint8_t> &token) override;
 
-    ::android::binder::Status onAcquired(int64_t deviceId, int32_t userId, int32_t acquiredInfo, int32_t vendorCode) override;
+    ::ndk::ScopedAStatus onAcquired(int64_t deviceId, int32_t userId, int32_t acquiredInfo, int32_t vendorCode) override;
 
-    ::android::binder::Status onError(int64_t deviceId, int32_t userId, int32_t error, int32_t vendorCode) override;
+    ::ndk::ScopedAStatus onError(int64_t deviceId, int32_t userId, int32_t error, int32_t vendorCode) override;
 
-    ::android::binder::Status onRemoved(int64_t deviceId, const ::std::vector<int32_t> &faceIds, int32_t userId) override;
+    ::ndk::ScopedAStatus onRemoved(int64_t deviceId, const ::std::vector<int32_t> &faceIds, int32_t userId) override;
 
-    ::android::binder::Status onEnumerate(int64_t deviceId, const ::std::vector<int32_t> &faceIds, int32_t userId) override;
+    ::ndk::ScopedAStatus onEnumerate(int64_t deviceId, const ::std::vector<int32_t> &faceIds, int32_t userId) override;
 
-    ::android::binder::Status onLockoutChanged(int64_t duration) override;
+    ::ndk::ScopedAStatus onLockoutChanged(int64_t duration) override;
 
 private:
     sp<IBiometricsFaceClientCallback> mBiometricsFaceClientCallback;

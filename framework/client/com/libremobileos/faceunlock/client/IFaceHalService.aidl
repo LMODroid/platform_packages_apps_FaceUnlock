@@ -18,6 +18,7 @@ package com.libremobileos.faceunlock.client;
 
 import com.libremobileos.faceunlock.client.IFaceHalServiceCallback;
 
+@VintfStability
 interface IFaceHalService {
     long getDeviceId();
 

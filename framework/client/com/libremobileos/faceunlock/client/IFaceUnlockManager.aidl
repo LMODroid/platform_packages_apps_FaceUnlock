@@ -16,6 +16,7 @@
 
 package com.libremobileos.faceunlock.client;
 
+@VintfStability
 interface IFaceUnlockManager {
     void enrollResult(int remaining);
     void error(int error);

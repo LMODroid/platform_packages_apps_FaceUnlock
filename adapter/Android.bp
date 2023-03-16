@@ -18,24 +18,20 @@ cc_binary {
     name: "android.hardware.biometrics.face@1.0-service.lmodroid",
     defaults: ["hidl_defaults"],
     init_rc: ["android.hardware.biometrics.face@1.0-service.lmodroid.rc"],
-    vintf_fragments: ["manifest_face_lmodroid.xml"],
     relative_install_path: "hw",
     srcs: [
         "BiometricsFace.cpp",
         "FaceHalServiceCallback.cpp",
         "service.cpp",
-        "binder-interfaces/IFaceHalService.cpp",
-        "binder-interfaces/IFaceHalServiceCallback.cpp"
-    ],
-    local_include_dirs: [
-        "binder-interfaces/include"
     ],
     vendor: true,
     shared_libs: [
         "libbinder",
+        "libbinder_ndk",
         "libhidlbase",
         "libutils",
         "liblog",
         "android.hardware.biometrics.face@1.0",
+        "LMOFaceClient_aidl-V1-ndk",
     ],
 }

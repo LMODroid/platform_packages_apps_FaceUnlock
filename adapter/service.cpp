@@ -17,11 +17,10 @@
 #define LOG_TAG "android.hardware.biometrics.face@1.0-service.lmodroid"
 
 #include "BiometricsFace.h"
-#include <binder/IBinder.h>
-#include <binder/IServiceManager.h>
 #include <android/hardware/biometrics/face/1.0/IBiometricsFace.h>
 #include <android/hardware/biometrics/face/1.0/types.h>
 #include <android/log.h>
+#include <android/binder_manager.h>
 #include <binder/ProcessState.h>
 #include <hidl/HidlSupport.h>
 #include <hidl/HidlTransportSupport.h>
@@ -32,31 +31,17 @@ using android::hardware::configureRpcThreadpool;
 using android::hardware::joinRpcThreadpool;
 using android::hardware::biometrics::face::implementation::BiometricsFace;
 using android::hardware::biometrics::face::V1_0::IBiometricsFace;
-using ::com::libremobileos::faceunlock::client::IFaceHalService;
+using ::aidl::com::libremobileos::faceunlock::client::IFaceHalService;
 
 int main() {
-    sp<IBinder> binderFaceHal;
-    sp<IFaceHalService> faceHalService = nullptr;
-
     ALOGI("LMODroid BiometricsFace HAL is being started.");
     // the conventional HAL might start binder services
     android::ProcessState::self()->setThreadPoolMaxThreadCount(4);
     android::ProcessState::self()->startThreadPool();
     configureRpcThreadpool(4, true /*callerWillJoin*/);
 
-    unsigned int lastSleep = 1;
-    while (faceHalService == nullptr) {
-        // wait for faceunlockhal service to start
-        ALOGI("Waiting for faceunlockhal service to start...");
-        sleep(lastSleep++);
-        binderFaceHal = android::defaultServiceManager()->getService(android::String16("faceunlockhal"));
-        if (binderFaceHal != nullptr)
-            faceHalService = android::interface_cast<IFaceHalService>(binderFaceHal);
-        else if (lastSleep < 1 || lastSleep > 100) {
-            ALOGI("Gave up waiting for faceunlockhal service to start. Sleeping for a long time...");
-            lastSleep = 999999;
-        }
-    }
+    ALOGI("Waiting for faceunlockhal service to start...");
+    IFaceHalService faceHalService = IFaceHalService::fromBinder(SpAIBinder(AServiceManager_waitForService("faceunlockhal")));
 
     android::sp<IBiometricsFace> face = new BiometricsFace(faceHalService);
     const android::status_t status = face->registerAsService("lmodroid");

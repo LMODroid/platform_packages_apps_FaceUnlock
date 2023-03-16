@@ -1,12 +1,35 @@
+aidl_interface {
+    name: "LMOFaceClient_aidl",
+    vendor_available: true,
+    srcs: [
+        "client/**/*.aidl",
+    ],
+    local_include_dir: "client",
+    stability: "vintf",
+    // cheat around setting a version
+    owner: "libremobileos",
+    backend: {
+        java: {
+            enabled: true,
+            // markVintfStability() is a platform API
+            platform_apis: true,
+        },
+        cpp: {
+            enabled: true,
+        },
+        ndk: {
+            enabled: true,
+        },
+    },
+}
+
 java_library_static {
     name: "LMOFaceClient",
     platform_apis: true,
-    srcs: ["client/**/*.java", "client/**/*.aidl"],
-    aidl: {
-        include_dirs: [
-            "packages/apps/FaceUnlock/framework/client",
-        ],
-    },
+    srcs: ["client/**/*.java"],
+    static_libs: [
+        "LMOFaceClient_aidl-V1-java",
+    ],
 }
 
 java_library_static {

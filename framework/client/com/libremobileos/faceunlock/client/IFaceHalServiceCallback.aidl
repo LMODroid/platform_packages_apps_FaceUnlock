@@ -16,6 +16,7 @@
 
 package com.libremobileos.faceunlock.client;
 
+@VintfStability
 oneway interface IFaceHalServiceCallback {
     void onEnrollResult(long deviceId, int faceId, int userId, int remaining);
 
