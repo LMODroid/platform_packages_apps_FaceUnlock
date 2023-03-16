@@ -58,7 +58,7 @@ public class FaceUnlockServer {
 	private final long kDeviceId = 123; // Arbitrary value.
 	private final int kFaceId = 100; // Arbitrary value.
 	private final boolean DEBUG = false;
-	private final String SETTINGS_OVERLAY_PACKAGE = "com.libremobileos.facedetect.settings.overlay";
+	private final String SETTINGS_OVERLAY_PACKAGE = "com.libremobileos.faceunlock.settings.overlay";
 
 	private static final int MSG_CHALLENGE_TIMEOUT = 100;
 
