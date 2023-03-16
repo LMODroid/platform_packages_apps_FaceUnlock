@@ -46,8 +46,6 @@ import java.util.ArrayList;
 import java.util.List;
 import android.hardware.face.FaceManager;
 
-import android.hardware.biometrics.face.V1_0.FaceError;
-
 public class ScanActivity extends CameraActivity {
 
 	// AI-based detector
@@ -214,39 +212,27 @@ public class ScanActivity extends CameraActivity {
 		if (faces.size() == 10) {
 			String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
 			if (mToken != null) {
-				String storeDir = this.getFilesDir().getPath();
 				try {
-					storeDir = faceUnlockManager.getStorePath();
+					faceUnlockManager.finishEnroll(encodedFaces, mToken);
+					final Intent intent = new Intent();
+					ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
+					intent.setComponent(componentName);
+					intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT
+							| Intent.FLAG_ACTIVITY_CLEAR_TOP
+							| Intent.FLAG_ACTIVITY_SINGLE_TOP);
+					intent.putExtra(EXTRA_KEY_CHALLENGE_TOKEN, mToken);
+					intent.putExtra(EXTRA_KEY_SENSOR_ID, mSensorId);
+					intent.putExtra(EXTRA_KEY_CHALLENGE, mChallenge);
+					intent.putExtra(EXTRA_FROM_SETTINGS_SUMMARY, mFromSettingsSummary);
+					if (mUserId != 0) {
+						intent.putExtra(EXTRA_USER_ID, mUserId);
+					}
+					startActivity(intent);
+
+					finish();
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
-				RemoteFaceServiceClient.connect(storeDir, faced -> {
-					try {
-						if (!faced.enroll(encodedFaces, mToken)) {
-							faceUnlockManager.error(FaceError.UNABLE_TO_PROCESS);
-						} else {
-							faceUnlockManager.enrollResult(0);
-						}
-						final Intent intent = new Intent();
-						ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
-						intent.setComponent(componentName);
-						intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT
-								| Intent.FLAG_ACTIVITY_CLEAR_TOP
-								| Intent.FLAG_ACTIVITY_SINGLE_TOP);
-						intent.putExtra(EXTRA_KEY_CHALLENGE_TOKEN, mToken);
-						intent.putExtra(EXTRA_KEY_SENSOR_ID, mSensorId);
-						intent.putExtra(EXTRA_KEY_CHALLENGE, mChallenge);
-						intent.putExtra(EXTRA_FROM_SETTINGS_SUMMARY, mFromSettingsSummary);
-						if (mUserId != 0) {
-							intent.putExtra(EXTRA_USER_ID, mUserId);
-						}
-						startActivity(intent);
-
-						finish();
-					} catch (RemoteException e) {
-						e.printStackTrace();
-					}
-				});
 			}
 		} else {
 			if (mToken != null) {

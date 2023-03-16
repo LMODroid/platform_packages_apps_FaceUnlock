@@ -23,6 +23,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.hardware.biometrics.face.V1_0.FaceAcquiredInfo;
+import android.hardware.biometrics.face.V1_0.FaceError;
 import android.hardware.biometrics.face.V1_0.Feature;
 import android.hardware.biometrics.face.V1_0.Status;
 import android.os.Handler;
@@ -390,8 +391,18 @@ public class FaceUnlockServer {
 		}
 
 		@Override
-		public String getStorePath() {
-			return mStorePath;
+		public void finishEnroll(String encodedFaces, byte[] token) {
+			RemoteFaceServiceClient.connect(mStorePath, faced -> {
+				try {
+					if (!faced.enroll(encodedFaces, token)) {
+						mCallback.onError(kDeviceId, mUserId, FaceError.UNABLE_TO_PROCESS, 0);
+					} else {
+						mCallback.onEnrollResult(kDeviceId, kFaceId, mUserId, 0);
+					}
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			});
 		}
 	};
 

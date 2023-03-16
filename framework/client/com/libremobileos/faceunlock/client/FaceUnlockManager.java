@@ -64,13 +64,13 @@ public final class FaceUnlockManager {
 	}
 
 	/**
-	 * Get face data dir storage path
+	 * Save Enrolled face and HAT
 	 */
-	public String getStorePath() {
+	public void finishEnroll(String encodedFaces, byte[] token) {
 		try {
-			return mFaceUnlockManager.getStorePath();
+			mFaceUnlockManager.finishEnroll(encodedFaces, token);
 		} catch (RemoteException e) {
-			throw new RuntimeException("Failed when getStorePath(): " + e);
+			throw new RuntimeException("Failed when finishEnroll(): " + e);
 		}
 	}
 }

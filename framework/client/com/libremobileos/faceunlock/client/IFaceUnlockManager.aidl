@@ -19,5 +19,5 @@ package com.libremobileos.faceunlock.client;
 interface IFaceUnlockManager {
     void enrollResult(int remaining);
     void error(int error);
-    String getStorePath();
+    void finishEnroll(String encodedFaces, in byte[] token);
 }
