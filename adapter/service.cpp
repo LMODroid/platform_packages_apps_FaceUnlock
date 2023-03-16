@@ -44,13 +44,18 @@ int main() {
     android::ProcessState::self()->startThreadPool();
     configureRpcThreadpool(4, true /*callerWillJoin*/);
 
+    unsigned int lastSleep = 1;
     while (faceHalService == nullptr) {
         // wait for faceunlockhal service to start
         ALOGI("Waiting for faceunlockhal service to start...");
-        sleep(1);
+        sleep(lastSleep++);
         binderFaceHal = android::defaultServiceManager()->getService(android::String16("faceunlockhal"));
         if (binderFaceHal != nullptr)
             faceHalService = android::interface_cast<IFaceHalService>(binderFaceHal);
+        else if (lastSleep < 1 || lastSleep > 100) {
+            ALOGI("Gave up waiting for faceunlockhal service to start. Sleeping for a long time...");
+            lastSleep = 999999;
+        }
     }
 
     android::sp<IBiometricsFace> face = new BiometricsFace(faceHalService);

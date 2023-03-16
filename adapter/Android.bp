@@ -30,6 +30,7 @@ cc_binary {
     local_include_dirs: [
         "binder-interfaces/include"
     ],
+    vendor: true,
     shared_libs: [
         "libbinder",
         "libhidlbase",

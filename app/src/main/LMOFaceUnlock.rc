@@ -1,0 +1,2 @@
+on post-fs-data
+    start vendor.face-hal-1-0-lmodroid
