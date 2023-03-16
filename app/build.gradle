@@ -50,6 +50,7 @@ android {
 
 dependencies {
 	implementation files('system_libs/android.hardware.biometrics.face-V1.0-java.jar')
+	implementation files('system_libs/LMOFaceClient.jar')
 	compileOnly files('system_libs/framework.jar')
 
 	implementation(project(':FaceShared'))
