@@ -16,5 +16,6 @@ android_app {
         "LMOFaceClient",
         "android.hardware.biometrics.face-V1.0-java",
     ],
+    required: ["LMOFaceUnlockSettingsOverlay"],
     jni_libs: ["libtensorflowlite_jni"],
 }
