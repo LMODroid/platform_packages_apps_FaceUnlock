@@ -21,9 +21,9 @@
 #include <hidl/Status.h>
 #include <random>
 
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalService.h>
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalServiceCallback.h>
-#include <com/android/internal/libremobileos/faceunlock/BnFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/BnFaceHalServiceCallback.h>
 
 namespace android::hardware::biometrics::face::implementation {
 
@@ -38,9 +38,9 @@ using ::android::hardware::biometrics::face::V1_0::Feature;
 using ::android::hardware::biometrics::face::V1_0::IBiometricsFaceClientCallback;
 using ::android::hardware::biometrics::face::V1_0::Status;
 
-using ::com::android::internal::libremobileos::faceunlock::BnFaceHalServiceCallback;
-using ::com::android::internal::libremobileos::faceunlock::IFaceHalService;
-using ::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback;
+using ::com::libremobileos::faceunlock::client::BnFaceHalServiceCallback;
+using ::com::libremobileos::faceunlock::client::IFaceHalService;
+using ::com::libremobileos::faceunlock::client::IFaceHalServiceCallback;
 
 class BiometricsFace : public V1_0::IBiometricsFace {
   public:

@@ -32,7 +32,7 @@ using android::hardware::configureRpcThreadpool;
 using android::hardware::joinRpcThreadpool;
 using android::hardware::biometrics::face::implementation::BiometricsFace;
 using android::hardware::biometrics::face::V1_0::IBiometricsFace;
-using ::com::android::internal::libremobileos::faceunlock::IFaceHalService;
+using ::com::libremobileos::faceunlock::client::IFaceHalService;
 
 int main() {
     sp<IBinder> binderFaceHal;

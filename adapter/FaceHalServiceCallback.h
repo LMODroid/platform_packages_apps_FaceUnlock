@@ -24,7 +24,7 @@ class FaceHalServiceCallback : public BnFaceHalServiceCallback {
 public:
     FaceHalServiceCallback(sp<IBiometricsFaceClientCallback>);
 
-    // Methods from ::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback follow.
+    // Methods from ::com::libremobileos::faceunlock::client::IFaceHalServiceCallback follow.
     ::android::binder::Status onEnrollResult(int64_t deviceId, int32_t faceId, int32_t userId, int32_t remaining) override;
 
     ::android::binder::Status onAuthenticated(int64_t deviceId, int32_t faceId, int32_t userId, const ::std::vector<uint8_t> &token) override;

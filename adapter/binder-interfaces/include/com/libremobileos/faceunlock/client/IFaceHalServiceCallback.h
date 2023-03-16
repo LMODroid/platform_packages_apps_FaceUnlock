@@ -9,13 +9,11 @@
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 class IFaceHalServiceCallback : public ::android::IInterface {
 public:
@@ -57,12 +55,10 @@ public:
   }
 };  // class IFaceHalServiceCallbackDefault
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

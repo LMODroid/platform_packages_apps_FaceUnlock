@@ -1,17 +1,15 @@
 #pragma once
 
 #include <binder/IInterface.h>
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalServiceCallback.h>
 
 namespace com {
-
-namespace android {
-
-namespace internal {
 
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 class BnFaceHalServiceCallback : public ::android::BnInterface<IFaceHalServiceCallback> {
 public:
@@ -26,12 +24,10 @@ public:
   ::android::status_t onTransact(uint32_t _aidl_code, const ::android::Parcel& _aidl_data, ::android::Parcel* _aidl_reply, uint32_t _aidl_flags) override;
 };  // class BnFaceHalServiceCallback
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

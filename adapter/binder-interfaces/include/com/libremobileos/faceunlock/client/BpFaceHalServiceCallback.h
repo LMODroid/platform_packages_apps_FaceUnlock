@@ -3,17 +3,15 @@
 #include <binder/IBinder.h>
 #include <binder/IInterface.h>
 #include <utils/Errors.h>
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalServiceCallback.h>
 
 namespace com {
-
-namespace android {
-
-namespace internal {
 
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 class BpFaceHalServiceCallback : public ::android::BpInterface<IFaceHalServiceCallback> {
 public:
@@ -28,12 +26,10 @@ public:
   ::android::binder::Status onLockoutChanged(int64_t duration) override;
 };  // class BpFaceHalServiceCallback
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

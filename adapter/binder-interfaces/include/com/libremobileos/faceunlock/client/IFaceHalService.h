@@ -3,7 +3,7 @@
 #include <binder/IBinder.h>
 #include <binder/IInterface.h>
 #include <binder/Status.h>
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalServiceCallback.h>
 #include <cstdint>
 #include <utils/String16.h>
 #include <utils/StrongPointer.h>
@@ -11,19 +11,17 @@
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 class IFaceHalService : public ::android::IInterface {
 public:
   DECLARE_META_INTERFACE(FaceHalService)
   virtual ::android::binder::Status getDeviceId(int64_t* _aidl_return) = 0;
-  virtual ::android::binder::Status setCallback(const ::android::sp<::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback>& callback) = 0;
+  virtual ::android::binder::Status setCallback(const ::android::sp<::com::libremobileos::faceunlock::client::IFaceHalServiceCallback>& callback) = 0;
   virtual ::android::binder::Status setActiveUser(int32_t userId, const ::android::String16& storePath, int32_t* _aidl_return) = 0;
   virtual ::android::binder::Status generateChallenge(int32_t timeout, int64_t* _aidl_return) = 0;
   virtual ::android::binder::Status enroll(const ::std::vector<uint8_t>& token, int32_t timeout, const ::std::vector<int32_t>& disabledFeatures, int32_t* _aidl_return) = 0;
@@ -47,7 +45,7 @@ public:
   ::android::binder::Status getDeviceId(int64_t*) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
-  ::android::binder::Status setCallback(const ::android::sp<::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback>&) override {
+  ::android::binder::Status setCallback(const ::android::sp<::com::libremobileos::faceunlock::client::IFaceHalServiceCallback>&) override {
     return ::android::binder::Status::fromStatusT(::android::UNKNOWN_TRANSACTION);
   }
   ::android::binder::Status setActiveUser(int32_t, const ::android::String16&, int32_t*) override {
@@ -91,12 +89,10 @@ public:
   }
 };  // class IFaceHalServiceDefault
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

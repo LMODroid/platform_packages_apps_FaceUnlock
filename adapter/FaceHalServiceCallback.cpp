@@ -23,7 +23,7 @@ using ::android::hardware::biometrics::face::V1_0::FaceError;
 
 FaceHalServiceCallback::FaceHalServiceCallback(sp<IBiometricsFaceClientCallback> biometricsFaceClientCallback) : mBiometricsFaceClientCallback(biometricsFaceClientCallback) {}
 
-// Methods from ::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback follow.
+// Methods from ::com::libremobileos::faceunlock::client::IFaceHalServiceCallback follow.
 ::android::binder::Status FaceHalServiceCallback::onEnrollResult(int64_t deviceId, int32_t faceId, int32_t userId, int32_t remaining) {
     mBiometricsFaceClientCallback->onEnrollResult(deviceId, faceId, userId, remaining);
     return ::android::binder::Status::ok();

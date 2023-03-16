@@ -3,24 +3,22 @@
 #include <binder/IBinder.h>
 #include <binder/IInterface.h>
 #include <utils/Errors.h>
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalService.h>
 
 namespace com {
-
-namespace android {
-
-namespace internal {
 
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 class BpFaceHalService : public ::android::BpInterface<IFaceHalService> {
 public:
   explicit BpFaceHalService(const ::android::sp<::android::IBinder>& _aidl_impl);
   virtual ~BpFaceHalService() = default;
   ::android::binder::Status getDeviceId(int64_t* _aidl_return) override;
-  ::android::binder::Status setCallback(const ::android::sp<::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback>& callback) override;
+  ::android::binder::Status setCallback(const ::android::sp<::com::libremobileos::faceunlock::client::IFaceHalServiceCallback>& callback) override;
   ::android::binder::Status setActiveUser(int32_t userId, const ::android::String16& storePath, int32_t* _aidl_return) override;
   ::android::binder::Status generateChallenge(int32_t timeout, int64_t* _aidl_return) override;
   ::android::binder::Status enroll(const ::std::vector<uint8_t>& token, int32_t timeout, const ::std::vector<int32_t>& disabledFeatures, int32_t* _aidl_return) override;
@@ -36,12 +34,10 @@ public:
   ::android::binder::Status resetLockout(const ::std::vector<uint8_t>& token, int32_t* _aidl_return) override;
 };  // class BpFaceHalService
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

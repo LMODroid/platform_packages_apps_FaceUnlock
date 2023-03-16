@@ -1,41 +1,35 @@
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalServiceCallback.h>
-#include <com/android/internal/libremobileos/faceunlock/BpFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/BpFaceHalServiceCallback.h>
 
 namespace com {
-
-namespace android {
-
-namespace internal {
 
 namespace libremobileos {
 
 namespace faceunlock {
 
-DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(FaceHalServiceCallback, "com.android.internal.libremobileos.faceunlock.IFaceHalServiceCallback")
+namespace client {
+
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(FaceHalServiceCallback, "com.libremobileos.faceunlock.client.IFaceHalServiceCallback")
+
+}  // namespace client
 
 }  // namespace faceunlock
 
 }  // namespace libremobileos
 
-}  // namespace internal
-
-}  // namespace android
-
 }  // namespace com
-#include <com/android/internal/libremobileos/faceunlock/BpFaceHalServiceCallback.h>
-#include <com/android/internal/libremobileos/faceunlock/BnFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/BpFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/BnFaceHalServiceCallback.h>
 #include <binder/Parcel.h>
 #include <android-base/macros.h>
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 BpFaceHalServiceCallback::BpFaceHalServiceCallback(const ::android::sp<::android::IBinder>& _aidl_impl)
     : BpInterface<IFaceHalServiceCallback>(_aidl_impl){
@@ -287,28 +281,24 @@ BpFaceHalServiceCallback::BpFaceHalServiceCallback(const ::android::sp<::android
   return _aidl_status;
 }
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
 
-}  // namespace internal
-
-}  // namespace android
-
 }  // namespace com
-#include <com/android/internal/libremobileos/faceunlock/BnFaceHalServiceCallback.h>
+#include <com/libremobileos/faceunlock/client/BnFaceHalServiceCallback.h>
 #include <binder/Parcel.h>
 #include <binder/Stability.h>
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 BnFaceHalServiceCallback::BnFaceHalServiceCallback()
 {
@@ -508,12 +498,10 @@ BnFaceHalServiceCallback::BnFaceHalServiceCallback()
   return _aidl_ret_status;
 }
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com

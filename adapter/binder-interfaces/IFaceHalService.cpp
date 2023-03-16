@@ -1,41 +1,35 @@
-#include <com/android/internal/libremobileos/faceunlock/IFaceHalService.h>
-#include <com/android/internal/libremobileos/faceunlock/BpFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/IFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/BpFaceHalService.h>
 
 namespace com {
-
-namespace android {
-
-namespace internal {
 
 namespace libremobileos {
 
 namespace faceunlock {
 
-DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(FaceHalService, "com.android.internal.libremobileos.faceunlock.IFaceHalService")
+namespace client {
+
+DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(FaceHalService, "com.libremobileos.faceunlock.client.IFaceHalService")
+
+}  // namespace client
 
 }  // namespace faceunlock
 
 }  // namespace libremobileos
 
-}  // namespace internal
-
-}  // namespace android
-
 }  // namespace com
-#include <com/android/internal/libremobileos/faceunlock/BpFaceHalService.h>
-#include <com/android/internal/libremobileos/faceunlock/BnFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/BpFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/BnFaceHalService.h>
 #include <binder/Parcel.h>
 #include <android-base/macros.h>
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 BpFaceHalService::BpFaceHalService(const ::android::sp<::android::IBinder>& _aidl_impl)
     : BpInterface<IFaceHalService>(_aidl_impl){
@@ -74,7 +68,7 @@ BpFaceHalService::BpFaceHalService(const ::android::sp<::android::IBinder>& _aid
   return _aidl_status;
 }
 
-::android::binder::Status BpFaceHalService::setCallback(const ::android::sp<::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback>& callback) {
+::android::binder::Status BpFaceHalService::setCallback(const ::android::sp<::com::libremobileos::faceunlock::client::IFaceHalServiceCallback>& callback) {
   ::android::Parcel _aidl_data;
   _aidl_data.markForBinder(remoteStrong());
   ::android::Parcel _aidl_reply;
@@ -84,7 +78,7 @@ BpFaceHalService::BpFaceHalService(const ::android::sp<::android::IBinder>& _aid
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
-  _aidl_ret_status = _aidl_data.writeStrongBinder(::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback::asBinder(callback));
+  _aidl_ret_status = _aidl_data.writeStrongBinder(::com::libremobileos::faceunlock::client::IFaceHalServiceCallback::asBinder(callback));
   if (((_aidl_ret_status) != (::android::OK))) {
     goto _aidl_error;
   }
@@ -589,28 +583,24 @@ BpFaceHalService::BpFaceHalService(const ::android::sp<::android::IBinder>& _aid
   return _aidl_status;
 }
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
 
-}  // namespace internal
-
-}  // namespace android
-
 }  // namespace com
-#include <com/android/internal/libremobileos/faceunlock/BnFaceHalService.h>
+#include <com/libremobileos/faceunlock/client/BnFaceHalService.h>
 #include <binder/Parcel.h>
 #include <binder/Stability.h>
 
 namespace com {
 
-namespace android {
-
-namespace internal {
-
 namespace libremobileos {
 
 namespace faceunlock {
+
+namespace client {
 
 BnFaceHalService::BnFaceHalService()
 {
@@ -643,7 +633,7 @@ BnFaceHalService::BnFaceHalService()
   break;
   case BnFaceHalService::TRANSACTION_setCallback:
   {
-    ::android::sp<::com::android::internal::libremobileos::faceunlock::IFaceHalServiceCallback> in_callback;
+    ::android::sp<::com::libremobileos::faceunlock::client::IFaceHalServiceCallback> in_callback;
     if (!(_aidl_data.checkInterface(this))) {
       _aidl_ret_status = ::android::BAD_TYPE;
       break;
@@ -1015,12 +1005,10 @@ BnFaceHalService::BnFaceHalService()
   return _aidl_ret_status;
 }
 
+}  // namespace client
+
 }  // namespace faceunlock
 
 }  // namespace libremobileos
-
-}  // namespace internal
-
-}  // namespace android
 
 }  // namespace com
