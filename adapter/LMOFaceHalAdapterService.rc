@@ -1,4 +1,0 @@
-service faceunlock-hal.lmodroid /system/bin/LMOFaceHalAdapterService
-    class main
-    user system
-    group system
