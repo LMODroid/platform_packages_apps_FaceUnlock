@@ -22,7 +22,9 @@ import android.hardware.biometrics.face.V1_0.OptionalBool;
 import android.hardware.biometrics.face.V1_0.OptionalUint64;
 import android.hardware.biometrics.face.V1_0.Status;
 import android.hidl.base.V1_0.DebugInfo;
+import android.os.HwParcel;
 import android.os.IHwBinder;
+import android.os.IHwInterface;
 import android.os.NativeHandle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -40,15 +42,26 @@ public class FakeBiometricsFace implements IBiometricsFace {
 
     @Override
     public IHwBinder asBinder() {
-        // Stub
-        Log.e(TAG, "unsupported call to asBinder()");
-        return null;
+        return new IHwBinder() {
+            public void transact(
+                    int code, HwParcel request, HwParcel reply, int flags)
+                throws RemoteException {}
+            public IHwInterface queryLocalInterface(String descriptor) {
+                return null;
+            }
+            public boolean linkToDeath(DeathRecipient recipient, long cookie) {
+                return false;
+            }
+            public boolean unlinkToDeath(DeathRecipient recipient) {
+                return false;
+            }
+        };
     }
 
     @Override
     public OptionalUint64 setCallback(IBiometricsFaceClientCallback iBiometricsFaceClientCallback) throws RemoteException {
         mFaceHalService.setCallback(new FaceCallbackAdapter(iBiometricsFaceClientCallback));
-        return makeOkUint(0);
+        return makeOkUint(mFaceHalService.getDeviceId());
     }
 
     @Override
