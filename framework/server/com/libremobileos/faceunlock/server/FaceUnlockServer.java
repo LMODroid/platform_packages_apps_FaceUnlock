@@ -26,6 +26,7 @@ import android.hardware.biometrics.face.V1_0.FaceAcquiredInfo;
 import android.hardware.biometrics.face.V1_0.FaceError;
 import android.hardware.biometrics.face.V1_0.Feature;
 import android.hardware.biometrics.face.V1_0.Status;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -73,6 +74,8 @@ public class FaceUnlockServer {
 	private CameraService mCameraService;
 	private int mUserId = 0;
 	private String mStorePath = "/data/vendor_de/0/facedata";
+	private boolean isLocked = false;
+	private boolean isTimerTicking = false;
 
 	private final IBinder mFaceUnlockHalBinder = new IFaceHalService.Stub() {
 
@@ -191,9 +194,21 @@ public class FaceUnlockServer {
 
 		@Override
 		public int cancel() {
+			if (DEBUG)
+				Log.d(TAG, "cancel");
+
 			// Not sure what to do here.
-			mCameraService.closeCamera();
-			mCameraService.stopBackgroundThread();
+			if (mCameraService != null) {
+				mCameraService.closeCamera();
+				mCameraService.stopBackgroundThread();
+			}
+			try {
+				mCallback.onError(kDeviceId, mUserId, FaceError.CANCELED, 0);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
+			isTimerTicking = false;
+			lockOutTimer.cancel();
 			return Status.OK;
 		}
 
@@ -250,11 +265,17 @@ public class FaceUnlockServer {
 			if (DEBUG)
 				Log.d(TAG, "authenticate " + operationId);
 
-			mCameraService = new CameraService(mContext, faceCallback);
-			mWorkHandler.post(() -> {
-				mCameraService.startBackgroundThread();
-				mCameraService.openCamera();
-			});
+			if (!isLocked) {
+				mCameraService = new CameraService(mContext, faceCallback);
+				mWorkHandler.post(() -> {
+					mCameraService.startBackgroundThread();
+					mCameraService.openCamera();
+				});
+				if (!isTimerTicking) {
+					isTimerTicking = true;
+					lockOutTimer.start();
+				}
+			}
 			return Status.OK;
 		}
 
@@ -270,6 +291,10 @@ public class FaceUnlockServer {
 		public int resetLockout(byte[] hat) {
 			if (DEBUG)
 				Log.d(TAG, "resetLockout");
+
+			isLocked = false;
+			isTimerTicking = false;
+			lockOutTimer.cancel();
 
 			return Status.OK;
 		}
@@ -299,6 +324,10 @@ public class FaceUnlockServer {
 		@Override
 		public void processImage (Size previewSize, Size rotatedSize, Bitmap rgbBitmap,int rotation)
 		{
+			if (isLocked) {
+				mCameraService.readyForNextImage();
+				return;
+			}
 			// No mutex needed as this method is not reentrant.
 			if (computingDetection) {
 				mCameraService.readyForNextImage();
@@ -337,6 +366,7 @@ public class FaceUnlockServer {
 									// ignore the warning, api 33-only stuff right there :D
 									String base64hat = result.toString(StandardCharsets.UTF_8.name());
 									byte[] hat = Base64.decode(base64hat, Base64.URL_SAFE);
+									lockOutTimer.cancel();
 									mCallback.onAuthenticated(kDeviceId, kFaceId, mUserId, hat);
 								}
 							} catch (IOException e) {
@@ -352,6 +382,23 @@ public class FaceUnlockServer {
 			}
 
 			mCameraService.readyForNextImage();
+		}
+	};
+
+	CountDownTimer lockOutTimer = new CountDownTimer(30000, 1000) {
+		public void onTick(long millisUntilFinished) {
+			Log.d(TAG, "lockOutTimer: " + millisUntilFinished / 1000);
+			isTimerTicking = true;
+		}
+
+		public void onFinish() {
+			isLocked = true;
+			isTimerTicking = false;
+			try {
+				mCallback.onError(kDeviceId, mUserId, FaceError.TIMEOUT, 0);
+			} catch (RemoteException e) {
+				e.printStackTrace();
+			}
 		}
 	};
 
