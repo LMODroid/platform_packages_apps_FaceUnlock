@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ComponentName to launch a vendor-specific enrollment activity if available -->
+    <string name="config_face_enroll" translatable="false">com.libremobileos.faceunlock/com.libremobileos.faceunlock.ScanActivity</string>
+
+    <!-- Whether to show the "less secure" info section on the face enroll intro screen -->
+    <bool name="config_face_intro_show_less_secure">true</bool>
+
+    <!-- Whether to show the "require eyes" info section on the face enroll intro screen -->
+    <bool name="config_face_intro_show_require_eyes">true</bool>
+</resources>

@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- ComponentName to launch a vendor-specific enrollment activity if available -->
-    <string name="config_face_enroll" translatable="false">com.libremobileos.faceunlock/com.libremobileos.faceunlock.ScanActivity</string>
-</resources>
