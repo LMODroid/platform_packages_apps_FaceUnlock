@@ -18,6 +18,4 @@ android_app {
     ],
     required: ["LMOFaceUnlockSettingsOverlay"],
     jni_libs: ["libtensorflowlite_jni"],
-    init_rc: ["LMOFaceUnlock.rc"],
-    vintf_fragments: ["manifest_face_lmodroid.xml"],
 }

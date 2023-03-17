@@ -16,8 +16,22 @@
 
 package com.libremobileos.faceunlock.client;
 
-interface IFaceUnlockManager {
-    void enrollResult(int remaining);
-    void error(int error);
-    void finishEnroll(String encodedFaces, in byte[] token);
+import android.hardware.biometrics.face.V1_0.IBiometricsFace;
+import android.os.ServiceManager;
+import android.util.Log;
+
+public final class FaceUnlockHalManager {
+
+	public static final String SERVICE_NAME = "faceunlockhal";
+	private static final String TAG = "FaceUnlockHalManager";
+
+	public static IBiometricsFace getIBiometricsFace() {
+		IFaceHalService faceHalService = IFaceHalService.Stub.asInterface(
+                        ServiceManager.getService(SERVICE_NAME));
+		if (faceHalService == null) {
+			Log.e(TAG, "Unable to get IFaceHalService.");
+		    return null;
+        }
+		return new FakeBiometricsFace(faceHalService);
+	}
 }

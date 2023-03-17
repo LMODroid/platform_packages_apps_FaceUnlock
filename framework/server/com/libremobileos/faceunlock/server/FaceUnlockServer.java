@@ -79,12 +79,6 @@ public class FaceUnlockServer {
 
 	private final IBinder mFaceUnlockHalBinder = new IFaceHalService.Stub() {
 
-        @Override
-        public final int getInterfaceVersion() { return super.VERSION; }
-
-        @Override
-		public final String getInterfaceHash() { return super.HASH; }
-
 		@Override
 		public long getDeviceId() {
 			return kDeviceId;
@@ -430,12 +424,6 @@ public class FaceUnlockServer {
 	}
 
 	private final IBinder mFaceUnlockManagerBinder = new IFaceUnlockManager.Stub() {
-
-        @Override
-        public final int getInterfaceVersion() { return super.VERSION; }
-
-        @Override
-		public final String getInterfaceHash() { return super.HASH; }
 
 		@Override
 		public void enrollResult(int remaining) throws RemoteException {
