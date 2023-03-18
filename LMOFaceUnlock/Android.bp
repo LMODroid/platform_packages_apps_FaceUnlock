@@ -1,0 +1,25 @@
+android_app {
+    name: "LMOFaceUnlock",
+    platform_apis: true,
+    certificate: "platform",
+
+    resource_dirs: ["res"],
+    srcs: [
+        "java/**/*.java",
+        "java/**/*.aidl",
+    ],
+
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.cardview_cardview",
+        "YifanFaceShared",
+        "LMOFaceClient",
+        "android.hardware.biometrics.face-V1.0-java",
+    ],
+    required: [
+        "LMOFaceUnlockSettingsOverlay",
+        // These shouldn't be here, but soong doesn't care about "required" of static? libraries
+        "yifan-detect-class1.tflite", "yifan-mobile_face_net.tflite",
+    ],
+    jni_libs: ["libtensorflowlite_jni"],
+}

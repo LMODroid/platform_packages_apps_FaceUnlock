@@ -1,0 +1,15 @@
+<resources>
+	<string name="app_name">FaceUnlock</string>
+	<string name="internal_err">Internal error</string>
+	<string name="face_unlock">Face Unlock</string>
+	<string name="next">Next</string>
+	<string name="cancel">Cancel</string>
+	<string name="accuracy">You must scan your face in optimal light conditions. This ensures maximum accuracy. If you scan your face in different positions, there will be added accuracy.</string>
+	<string name="found_2_faces">2 faces detected, please only have one face visible for your camera</string>
+	<string name="cant_find_face">Unable to find any face</string>
+	<string name="cant_scan_face">Can\'t properly scan your face, try to look into the camera directly and make sure your face is well-lit</string>
+	<string name="scan_face_now">Scan your face now</string>
+	<string name="register_failed">Registering your face has failed. We are sorry for the inconvenience. Please try again later.</string>
+	<string name="welcome_text">**welcome text placeholder uwu**</string>
+	<string name="finish_msg">**finish text placeholder uwu**</string>
+</resources>

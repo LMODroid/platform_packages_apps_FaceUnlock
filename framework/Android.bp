@@ -35,7 +35,7 @@ java_library_static {
     srcs: ["server/**/*.java"],
     static_libs: [
         "LMOFaceClient",
-        "LMOFaceShared_java",
+        "YifanFaceShared",
         "android.hardware.biometrics.face-V1.0-java",
     ],
 }
