@@ -188,21 +188,23 @@ public class FaceUnlockServer {
 
 		@Override
 		public int cancel() {
-			if (DEBUG)
-				Log.d(TAG, "cancel");
+			mWorkHandler.post(() -> {
+				if (DEBUG)
+					Log.d(TAG, "cancel");
 
-			// Not sure what to do here.
-			if (mCameraService != null) {
-				mCameraService.closeCamera();
-				mCameraService.stopBackgroundThread();
-			}
-			try {
-				mCallback.onError(kDeviceId, mUserId, FaceError.CANCELED, 0);
-			} catch (RemoteException e) {
-				e.printStackTrace();
-			}
-			isTimerTicking = false;
-			lockOutTimer.cancel();
+				// Not sure what to do here.
+				if (mCameraService != null) {
+					mCameraService.closeCamera();
+					mCameraService.stopBackgroundThread();
+				}
+				try {
+					mCallback.onError(kDeviceId, mUserId, FaceError.CANCELED, 0);
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+				isTimerTicking = false;
+				lockOutTimer.cancel();
+			});
 			return Status.OK;
 		}
 
@@ -260,8 +262,8 @@ public class FaceUnlockServer {
 				Log.d(TAG, "authenticate " + operationId);
 
 			if (!isLocked) {
-				mCameraService = new CameraService(mContext, faceCallback);
 				mWorkHandler.post(() -> {
+					mCameraService = new CameraService(mContext, faceCallback);
 					mCameraService.startBackgroundThread();
 					mCameraService.openCamera();
 				});
