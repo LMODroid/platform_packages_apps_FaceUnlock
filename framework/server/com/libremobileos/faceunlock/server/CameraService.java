@@ -113,13 +113,13 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		}
 	};
 
-	public void startBackgroundThread() {
+	public synchronized void startBackgroundThread() {
 		mBackgroundThread = new HandlerThread("Camera Background");
 		mBackgroundThread.start();
 		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 	}
 
-	public void stopBackgroundThread() {
+	public synchronized void stopBackgroundThread() {
 		closeCamera();
 		mBackgroundThread.quitSafely();
 		try {
