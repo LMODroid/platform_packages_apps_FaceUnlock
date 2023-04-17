@@ -240,13 +240,14 @@ public class FaceUnlockServer {
 
 			mWorkHandler.post(() -> {
 				RemoteFaceServiceClient.connect(mStorePath, faced -> {
+					int[] faceIds = new int[1];
 					if ((faceId == kFaceId || faceId == 0) && faced.isEnrolled()) {
 						faced.unenroll();
-						int[] faceIds = new int[1];
-						faceIds[0] = faceId;
+						faceIds[0] = kFaceId;
+					}
+					if (mCallback != null) {
 						try {
-							if (mCallback != null)
-								mCallback.onRemoved(kDeviceId, faceIds, mUserId);
+							mCallback.onRemoved(kDeviceId, faceIds, mUserId);
 						} catch (RemoteException e) {
 							e.printStackTrace();
 						}
