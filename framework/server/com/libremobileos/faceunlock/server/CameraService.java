@@ -121,6 +121,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 
 	public synchronized void stopBackgroundThread() {
 		closeCamera();
+		if (mBackgroundThread == null) return;
+
 		mBackgroundThread.quitSafely();
 		try {
 			mBackgroundThread.join();
