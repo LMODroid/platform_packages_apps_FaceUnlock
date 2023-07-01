@@ -51,6 +51,7 @@ import java.util.List;
 public class CameraService implements ImageReader.OnImageAvailableListener {
 
 	private static final String TAG = "Camera2Service";
+	private static final boolean DEBUG = FaceUnlockServer.DEBUG;
 
 	/**
 	 * The camera preview size will be chosen to be the smallest frame by pixel size capable of
@@ -61,19 +62,16 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	private Handler mBackgroundHandler;
 	private HandlerThread mBackgroundThread;
 	private CameraDevice cameraDevice;
-	private CameraCaptureSession cameraCaptureSessions;
-	private CaptureRequest captureRequest;
-	private CaptureRequest.Builder captureRequestBuilder;
 	private ImageReader previewReader;
-	private final byte[][] yuvBytes = new byte[3][];
+	private byte[][] yuvBytes = null;
 	private int[] rgbBytes = null;
 	private boolean isProcessingFrame = false;
 	private int yRowStride;
 	private Runnable postInferenceCallback;
 	private Runnable imageConverter;
 	private Bitmap rgbFrameBitmap = null;
-	private Size previewSize;
-	private Size rotatedSize;
+	private Size previewSize = null;
+	private Size rotatedSize = null;
 	private final Context mContext;
 	private final CameraCallback mCallback;
 
@@ -85,6 +83,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		void setupFaceRecognizer(Size bitmapSize, int rotation);
 
 		void processImage(Size previewSize, Size rotatedSize, Bitmap rgbBitmap, int rotation);
+
+		void stop();
 	}
 
 	public CameraService(Context context, CameraCallback callback) {
@@ -96,51 +96,60 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 		@Override
 		public void onOpened(CameraDevice camera) {
 			//This is called when the camera is open
-			Log.e(TAG, "onOpened");
+			if (DEBUG)
+				Log.d(TAG, "onOpened");
 			cameraDevice = camera;
 			createCameraPreview();
 		}
 
 		@Override
 		public void onDisconnected(CameraDevice camera) {
+			if (DEBUG)
+				Log.d(TAG, "onDisconnected");
 			cameraDevice.close();
 		}
 
 		@Override
 		public void onError(CameraDevice camera, int error) {
-			cameraDevice.close();
-			cameraDevice = null;
+			if (DEBUG)
+				Log.d(TAG, "onError");
+			closeCamera();
 		}
 	};
 
-	public synchronized void startBackgroundThread() {
+	public void startBackgroundThread() {
+		if (DEBUG)
+			Log.d(TAG, "startBackgroundThread");
 		mBackgroundThread = new HandlerThread("Camera Background");
 		mBackgroundThread.start();
 		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 	}
 
-	public synchronized void stopBackgroundThread() {
+	public void stopBackgroundThread() {
+		if (DEBUG)
+			Log.d(TAG, "stopBackgroundThread");
 		closeCamera();
-		if (mBackgroundThread == null) return;
 
 		mBackgroundThread.quitSafely();
 		try {
 			mBackgroundThread.join();
-			mBackgroundThread = null;
-			mBackgroundHandler = null;
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+		mBackgroundThread = null;
+		mBackgroundHandler = null;
 	}
 
 	private void createCameraPreview() {
+		if (DEBUG)
+			Log.d(TAG, "createCameraPreview");
 		try {
 			previewReader =
 					ImageReader.newInstance(
 							previewSize.getWidth(), previewSize.getHeight(), ImageFormat.YUV_420_888, 2);
 
 			previewReader.setOnImageAvailableListener(this, mBackgroundHandler);
-			captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+			final CaptureRequest.Builder captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
 			captureRequestBuilder.addTarget(previewReader.getSurface());
 
 			cameraDevice.createCaptureSession(Collections.singletonList(previewReader.getSurface()),
@@ -152,7 +161,6 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 								return;
 							}
 							// When the session is ready, we start displaying the preview.
-							cameraCaptureSessions = cameraCaptureSession;
 							try {
 								// Auto focus should be continuous for camera preview.
 								captureRequestBuilder.set(
@@ -163,9 +171,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 										CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
 
 								// Finally, we start displaying the camera preview.
-								captureRequest = captureRequestBuilder.build();
-								cameraCaptureSessions.setRepeatingRequest(
-										captureRequest, null, mBackgroundHandler);
+								cameraCaptureSession.setRepeatingRequest(
+										captureRequestBuilder.build(), null, mBackgroundHandler);
 							} catch (final CameraAccessException e) {
 								Log.e(TAG, "Exception!", e);
 							}
@@ -241,55 +248,82 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	}
 
 	public void openCamera() {
-		CameraManager manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
-		Log.e(TAG, "is camera open");
-		try {
-			String cameraId = manager.getCameraIdList()[0];
-			for (String id : manager.getCameraIdList()) {
-				CameraCharacteristics characteristics = manager.getCameraCharacteristics(id);
-				if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
-					cameraId = id;
-					break;
-				}
-			}
-			CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
-			StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-			Integer sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
-
-			assert map != null;
-
-			// Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
-			// bus' bandwidth limitation, resulting in gorgeous previews but the storage of
-			// garbage capture data.
-			previewSize =
-					chooseOptimalSize(
-							map.getOutputSizes(SurfaceTexture.class),
-							desiredInputSize.getWidth(), desiredInputSize.getHeight());
-			rotatedSize = previewSize;
-
-			imageOrientation = sensorOrientation + getScreenOrientation();
-			rgbFrameBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
-
-			if (imageOrientation % 180 != 0) {
-				rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
-			}
-			mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
-
-			manager.openCamera(cameraId, stateCallback, null);
-		} catch (CameraAccessException | SecurityException e) {
-			e.printStackTrace();
+		if (DEBUG)
+			Log.d(TAG, "openCamera");
+		if (null != cameraDevice) {
+			Log.e(TAG, "camera already open");
+			return;
 		}
+		mBackgroundHandler.post(() -> {
+			CameraManager manager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
+			try {
+				String cameraId = manager.getCameraIdList()[0];
+				for (String id : manager.getCameraIdList()) {
+					CameraCharacteristics characteristics = manager.getCameraCharacteristics(id);
+					if (characteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+						cameraId = id;
+						break;
+					}
+				}
+				CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+				StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+				Integer sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+				assert map != null;
+
+				// Danger, W.R.! Attempting to use too large a preview size could  exceed the camera
+				// bus' bandwidth limitation, resulting in gorgeous previews but the storage of
+				// garbage capture data.
+				previewSize =
+						chooseOptimalSize(
+								map.getOutputSizes(SurfaceTexture.class),
+								desiredInputSize.getWidth(), desiredInputSize.getHeight());
+				rotatedSize = previewSize;
+
+				imageOrientation = sensorOrientation + getScreenOrientation();
+				rgbFrameBitmap = Bitmap.createBitmap(previewSize.getWidth(), previewSize.getHeight(), Bitmap.Config.ARGB_8888);
+
+				if (imageOrientation % 180 != 0) {
+					rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+				}
+				if (DEBUG)
+					Log.d(TAG, "setting up face recognizer");
+				mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
+				if (DEBUG)
+					Log.d(TAG, "done setting up face recognizer, opening camera");
+				manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
+			} catch (CameraAccessException | SecurityException e) {
+				e.printStackTrace();
+			}
+		});
+	}
+
+	public boolean isOpen() {
+		return cameraDevice != null;
 	}
 
 	public void closeCamera() {
-		if (null != cameraDevice) {
-			cameraDevice.close();
-			cameraDevice = null;
-		}
+		if (DEBUG)
+			Log.d(TAG, "closeCamera");
+		previewSize = null;
 		if (null != previewReader) {
 			previewReader.close();
 			previewReader = null;
 		}
+		if (null != cameraDevice) {
+			cameraDevice.close();
+			cameraDevice = null;
+			mBackgroundHandler.post(() ->
+				mCallback.stop());
+		}
+		// sets postInferenceCallback to null and frees reference to image
+		readyForNextImage();
+		rotatedSize = null;
+		imageOrientation = 0;
+		rgbFrameBitmap = null;
+		imageConverter = null;
+		rgbBytes = null;
+		yuvBytes = null;
 	}
 
 	private void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
@@ -326,30 +360,51 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 	public void readyForNextImage() {
 		if (postInferenceCallback != null) {
 			postInferenceCallback.run();
+			postInferenceCallback = null;
 		}
 	}
 
 	@Override
 	public void onImageAvailable(ImageReader reader) {
-		int previewWidth = previewSize.getWidth();
-		int previewHeight = previewSize.getHeight();
-
-		if (rgbBytes == null) {
-			rgbBytes = new int[previewWidth * previewHeight];
-		}
+		//Trace.beginSection("imageAvailable");
 		try {
+			if (DEBUG)
+				Log.d(TAG, "onImageAvailable");
 			final Image image = reader.acquireLatestImage();
 
 			if (image == null) {
+				if (DEBUG)
+					Log.d(TAG, "image is null");
 				return;
 			}
 
+			if (previewSize == null) {
+				// Camera is currently being destroyed.
+				if (DEBUG)
+					Log.d(TAG, "previewSize is null");
+				image.close();
+				return;
+			}
+
+			int previewWidth = previewSize.getWidth();
+			int previewHeight = previewSize.getHeight();
+
+			if (rgbBytes == null) {
+				rgbBytes = new int[previewWidth * previewHeight];
+			}
+			if (yuvBytes == null) {
+				yuvBytes = new byte[3][];
+			}
+
 			if (isProcessingFrame) {
+				if (DEBUG)
+					Log.d(TAG, "still processing image, skipping this one");
 				image.close();
 				return;
 			}
 			isProcessingFrame = true;
-			Trace.beginSection("imageAvailable");
+			if (DEBUG)
+				Log.d(TAG, "start processing image " + image.hashCode());
 			final Image.Plane[] planes = image.getPlanes();
 			fillBytes(planes, yuvBytes);
 			yRowStride = planes[0].getRowStride();
@@ -370,6 +425,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 
 			postInferenceCallback =
 					() -> {
+						if (DEBUG)
+							Log.d(TAG, "done processing image " + image.hashCode());
 						image.close();
 						isProcessingFrame = false;
 					};
@@ -379,9 +436,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
 			mCallback.processImage(previewSize, rotatedSize, rgbFrameBitmap, imageOrientation);
 		} catch (final Exception e) {
 			Log.e(TAG, "Exception!", e);
-			Trace.endSection();
-			return;
+		} finally {
+			//Trace.endSection();
 		}
-		Trace.endSection();
 	}
 }
