@@ -666,7 +666,7 @@ public class FaceUnlockServer {
                             hatOSW.write(new String(Base64.encode(token, Base64.URL_SAFE)));
                             hatOSW.close();
                         } catch (IOException e) {
-                            Log.e("RemoteFaceServiceClient", "Failed to write HAT", e);
+                            Log.e(TAG, "Failed to write HAT", e);
                             result = false;
                         }
                     }
