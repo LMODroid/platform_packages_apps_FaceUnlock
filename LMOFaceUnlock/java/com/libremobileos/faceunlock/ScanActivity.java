@@ -25,6 +25,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -48,6 +50,8 @@ import android.hardware.face.FaceManager;
 
 public class ScanActivity extends CameraActivity {
 
+	private Handler mBackgroundHandler;
+	private HandlerThread mBackgroundThread;
 	// AI-based detector
 	private FaceFinder faceRecognizer;
 	// Simple view allowing us to draw a circle over the Preview
@@ -56,8 +60,6 @@ public class ScanActivity extends CameraActivity {
 	private long lastAdd;
 	private final List<FaceScanner.Face> faces = new ArrayList<>();
 	private TextView subText;
-
-	private boolean computingDetection = false;
 
 	private IFaceUnlockManager faceUnlockManager;
 	protected byte[] mToken;
@@ -97,6 +99,10 @@ public class ScanActivity extends CameraActivity {
 		mSensorId = getIntent().getIntExtra(EXTRA_KEY_SENSOR_ID, -1);
 		mFromSettingsSummary = getIntent().getBooleanExtra(EXTRA_FROM_SETTINGS_SUMMARY, false);
 		mUserId = getIntent().getIntExtra(EXTRA_USER_ID, 0);
+
+		mBackgroundThread = new HandlerThread("AI Background");
+		mBackgroundThread.start();
+		mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
 
 		if (mToken != null) {
 			ArrayList<Integer> disabledFeatures = new ArrayList<>();
@@ -143,6 +149,19 @@ public class ScanActivity extends CameraActivity {
 	};
 
 	@Override
+	protected void onStop() {
+		mBackgroundThread.quitSafely();
+		try {
+			mBackgroundThread.join();
+			mBackgroundThread = null;
+			mBackgroundHandler = null;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		super.onStop();
+	}
+
+	@Override
 	protected void setupFaceRecognizer(final Size bitmapSize) {
 		// Create AI-based face detection
 		faceRecognizer = FaceFinder.create(this,
@@ -156,13 +175,6 @@ public class ScanActivity extends CameraActivity {
 
 	@Override
 	protected void processImage() {
-		// No mutex needed as this method is not reentrant.
-		if (computingDetection) {
-			readyForNextImage();
-			return;
-		}
-		computingDetection = true;
-
 		if (faces.size() == 10) {
 			readyForNextImage();
 			return;
@@ -170,81 +182,82 @@ public class ScanActivity extends CameraActivity {
 
 		// Return list of detected faces
 		List<Pair<FaceDetector.Face, FaceScanner.Face>> data = faceRecognizer.process(getBitmap(), false);
-		computingDetection = false;
 
-		if (data.size() > 1) {
-			if (lastAdd == -1) { // last frame had two faces too
-				subText.setText(R.string.found_2_faces);
-			}
-			lastAdd = -1;
-			readyForNextImage();
-			return;
-		} else if (lastAdd == -1) {
-			lastAdd = System.currentTimeMillis();
-		}
-		if (data.size() == 0) {
-			if (lastAdd == -2) { // last frame had 0 faces too
-				subText.setText(R.string.cant_find_face);
-			}
-			lastAdd = -2;
-			readyForNextImage();
-			return;
-		} else if (lastAdd == -2) {
-			lastAdd = System.currentTimeMillis();
-		}
+        runOnUiThread(() -> {
+            if (data.size() > 1) {
+                if (lastAdd == -1) { // last frame had two faces too
+                    subText.setText(R.string.found_2_faces);
+                }
+                lastAdd = -1;
+                readyForNextImage();
+                return;
+            } else if (lastAdd == -1) {
+                lastAdd = System.currentTimeMillis();
+            }
+            if (data.size() == 0) {
+                if (lastAdd == -2) { // last frame had 0 faces too
+                    subText.setText(R.string.cant_find_face);
+                }
+                lastAdd = -2;
+                readyForNextImage();
+                return;
+            } else if (lastAdd == -2) {
+                lastAdd = System.currentTimeMillis();
+            }
 
-		Pair<FaceDetector.Face, FaceScanner.Face> face = data.get(0);
+            Pair<FaceDetector.Face, FaceScanner.Face> face = data.get(0);
 
-		// Do we want to add a new face?
-		if (lastAdd + 1000 < System.currentTimeMillis()) {
-			lastAdd = System.currentTimeMillis();
-			if (face.second.getBrightnessHint() < 1) {
-				subText.setText(R.string.cant_scan_face);
-				readyForNextImage();
-				return;
-			} else {
-				subText.setText(R.string.scan_face_now);
-			}
-			faces.add(face.second);
-			overlayView.setPercentage(faces.size() * 10);
-		}
+            // Do we want to add a new face?
+            if (lastAdd + 1000 < System.currentTimeMillis()) {
+                lastAdd = System.currentTimeMillis();
+                if (face.second.getBrightnessHint() < 1) {
+                    subText.setText(R.string.cant_scan_face);
+                    readyForNextImage();
+                    return;
+                } else {
+                    subText.setText(R.string.scan_face_now);
+                }
+                faces.add(face.second);
+                overlayView.setPercentage(faces.size() * 10);
+            }
 
-		if (faces.size() == 10) {
-			String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
-			if (mToken != null) {
-				try {
-					faceUnlockManager.finishEnroll(encodedFaces, mToken);
-					final Intent intent = new Intent();
-					ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
-					intent.setComponent(componentName);
-					intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT
-							| Intent.FLAG_ACTIVITY_CLEAR_TOP
-							| Intent.FLAG_ACTIVITY_SINGLE_TOP);
-					intent.putExtra(EXTRA_KEY_CHALLENGE_TOKEN, mToken);
-					intent.putExtra(EXTRA_KEY_SENSOR_ID, mSensorId);
-					intent.putExtra(EXTRA_KEY_CHALLENGE, mChallenge);
-					intent.putExtra(EXTRA_FROM_SETTINGS_SUMMARY, mFromSettingsSummary);
-					if (mUserId != 0) {
-						intent.putExtra(EXTRA_USER_ID, mUserId);
-					}
-					startActivity(intent);
+            if (faces.size() == 10) {
+                String encodedFaces = FaceDataEncoder.encode(faces.stream().map(FaceScanner.Face::getExtra).toArray(float[][]::new));
+                if (mToken != null) {
+                    try {
+                        faceUnlockManager.finishEnroll(encodedFaces, mToken);
+                        final Intent intent = new Intent();
+                        ComponentName componentName = ComponentName.unflattenFromString("com.android.settings/com.android.settings.biometrics.face.FaceEnrollFinish");
+                        intent.setComponent(componentName);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT
+                                | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                        intent.putExtra(EXTRA_KEY_CHALLENGE_TOKEN, mToken);
+                        intent.putExtra(EXTRA_KEY_SENSOR_ID, mSensorId);
+                        intent.putExtra(EXTRA_KEY_CHALLENGE, mChallenge);
+                        intent.putExtra(EXTRA_FROM_SETTINGS_SUMMARY, mFromSettingsSummary);
+                        if (mUserId != 0) {
+                            intent.putExtra(EXTRA_USER_ID, mUserId);
+                        }
+                        startActivity(intent);
 
-					finish();
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-			}
-		} else {
-			if (mToken != null) {
-				try {
-					faceUnlockManager.enrollResult(10 - faces.size());
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-			}
-		}
+                        finish();
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                if (mToken != null) {
+                    try {
+                        faceUnlockManager.enrollResult(10 - faces.size());
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
 
-		// Clean up
-		readyForNextImage();
+            // Clean up
+            readyForNextImage();
+        });
 	}
 }

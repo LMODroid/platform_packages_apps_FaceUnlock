@@ -469,13 +469,12 @@ public abstract class CameraActivity extends Activity implements ImageReader.OnI
 
 			rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
-			runOnUiThread(this::processImage);
+            processImage();
 		} catch (final Exception e) {
 			Log.e(TAG, "Exception!", e);
-			Trace.endSection();
-			return;
-		}
-		Trace.endSection();
+		} finally {
+		    Trace.endSection();
+        }
 	}
 
 	protected abstract void setupFaceRecognizer(final Size bitmapSize);
