@@ -23,6 +23,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.biometrics.BiometricFaceConstants;
 import android.hardware.face.FaceManager;
 import android.os.Bundle;
 import android.os.CancellationSignal;
@@ -148,6 +149,13 @@ public class ScanActivity extends CameraActivity {
     @Override
     protected void onStop() {
         mBackgroundThread.quitSafely();
+        if (faces.size() < 10) {
+            try {
+                faceUnlockManager.error(BiometricFaceConstants.FACE_ERROR_USER_CANCELED);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
         try {
             mBackgroundThread.join();
             mBackgroundThread = null;
