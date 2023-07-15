@@ -27,7 +27,6 @@ import android.os.IHwBinder;
 import android.os.IHwInterface;
 import android.os.NativeHandle;
 import android.os.RemoteException;
-import android.util.Log;
 
 import java.util.ArrayList;
 
@@ -36,6 +35,7 @@ public class FakeBiometricsFace implements IBiometricsFace {
     private static final String TAG = "FakeBiometricsFace";
 
     private final IFaceHalService mFaceHalService;
+
     /* package-private */ FakeBiometricsFace(IFaceHalService faceHalService) {
         this.mFaceHalService = faceHalService;
     }
@@ -43,15 +43,17 @@ public class FakeBiometricsFace implements IBiometricsFace {
     @Override
     public IHwBinder asBinder() {
         return new IHwBinder() {
-            public void transact(
-                    int code, HwParcel request, HwParcel reply, int flags)
-                throws RemoteException {}
+            public void transact(int code, HwParcel request, HwParcel reply, int flags)
+                    throws RemoteException {}
+
             public IHwInterface queryLocalInterface(String descriptor) {
                 return null;
             }
+
             public boolean linkToDeath(DeathRecipient recipient, long cookie) {
                 return false;
             }
+
             public boolean unlinkToDeath(DeathRecipient recipient) {
                 return false;
             }
@@ -59,7 +61,8 @@ public class FakeBiometricsFace implements IBiometricsFace {
     }
 
     @Override
-    public OptionalUint64 setCallback(IBiometricsFaceClientCallback iBiometricsFaceClientCallback) throws RemoteException {
+    public OptionalUint64 setCallback(IBiometricsFaceClientCallback iBiometricsFaceClientCallback)
+            throws RemoteException {
         mFaceHalService.setCallback(new FaceCallbackAdapter(iBiometricsFaceClientCallback));
         return makeOkUint(mFaceHalService.getDeviceId());
     }
@@ -75,7 +78,8 @@ public class FakeBiometricsFace implements IBiometricsFace {
     }
 
     @Override
-    public int enroll(ArrayList<Byte> arrayList, int i, ArrayList<Integer> arrayList1) throws RemoteException {
+    public int enroll(ArrayList<Byte> arrayList, int i, ArrayList<Integer> arrayList1)
+            throws RemoteException {
         return mFaceHalService.enroll(convertArr(arrayList), i, convertIntArr(arrayList1));
     }
 
@@ -85,7 +89,8 @@ public class FakeBiometricsFace implements IBiometricsFace {
     }
 
     @Override
-    public int setFeature(int i, boolean b, ArrayList<Byte> arrayList, int i1) throws RemoteException {
+    public int setFeature(int i, boolean b, ArrayList<Byte> arrayList, int i1)
+            throws RemoteException {
         return mFaceHalService.setFeature(i, b, convertArr(arrayList), i1);
     }
 
@@ -139,7 +144,8 @@ public class FakeBiometricsFace implements IBiometricsFace {
     }
 
     @Override
-    public void debug(NativeHandle nativeHandle, ArrayList<String> arrayList) throws RemoteException {
+    public void debug(NativeHandle nativeHandle, ArrayList<String> arrayList)
+            throws RemoteException {
         // Stub
     }
 
@@ -161,7 +167,8 @@ public class FakeBiometricsFace implements IBiometricsFace {
     }
 
     @Override
-    public boolean linkToDeath(IHwBinder.DeathRecipient deathRecipient, long l) throws RemoteException {
+    public boolean linkToDeath(IHwBinder.DeathRecipient deathRecipient, long l)
+            throws RemoteException {
         // Stub
         return false;
     }

@@ -29,22 +29,26 @@ public class FaceCallbackAdapter extends IFaceHalServiceCallback.Stub {
     }
 
     @Override
-    public void onEnrollResult(long deviceId, int faceId, int userId, int remaining) throws RemoteException {
+    public void onEnrollResult(long deviceId, int faceId, int userId, int remaining)
+            throws RemoteException {
         mCallback.onEnrollResult(deviceId, faceId, userId, remaining);
     }
 
     @Override
-    public void onAuthenticated(long deviceId, int faceId, int userId, byte[] token) throws RemoteException {
+    public void onAuthenticated(long deviceId, int faceId, int userId, byte[] token)
+            throws RemoteException {
         mCallback.onAuthenticated(deviceId, faceId, userId, convertArr(token));
     }
 
     @Override
-    public void onAcquired(long deviceId, int userId, int acquiredInfo, int vendorCode) throws RemoteException {
+    public void onAcquired(long deviceId, int userId, int acquiredInfo, int vendorCode)
+            throws RemoteException {
         mCallback.onAcquired(deviceId, userId, acquiredInfo, vendorCode);
     }
 
     @Override
-    public void onError(long deviceId, int userId, int error, int vendorCode) throws RemoteException {
+    public void onError(long deviceId, int userId, int error, int vendorCode)
+            throws RemoteException {
         mCallback.onError(deviceId, userId, error, vendorCode);
     }
 
@@ -64,7 +68,8 @@ public class FaceCallbackAdapter extends IFaceHalServiceCallback.Stub {
     }
 
     private static ArrayList<Integer> convertArr(int[] ar) {
-        ArrayList<Integer> ret = new ArrayList<>();;
+        ArrayList<Integer> ret = new ArrayList<>();
+        ;
         for (int b : ar) {
             ret.add(b);
         }
@@ -72,7 +77,8 @@ public class FaceCallbackAdapter extends IFaceHalServiceCallback.Stub {
     }
 
     private static ArrayList<Byte> convertArr(byte[] ar) {
-        ArrayList<Byte> ret = new ArrayList<>();;
+        ArrayList<Byte> ret = new ArrayList<>();
+        ;
         for (byte b : ar) {
             ret.add(b);
         }

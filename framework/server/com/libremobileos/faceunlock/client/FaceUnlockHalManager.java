@@ -22,16 +22,16 @@ import android.util.Log;
 
 public final class FaceUnlockHalManager {
 
-	public static final String SERVICE_NAME = "faceunlockhal";
-	private static final String TAG = "FaceUnlockHalManager";
+    public static final String SERVICE_NAME = "faceunlockhal";
+    private static final String TAG = "FaceUnlockHalManager";
 
-	public static IBiometricsFace getIBiometricsFace() {
-		IFaceHalService faceHalService = IFaceHalService.Stub.asInterface(
-                        ServiceManager.getService(SERVICE_NAME));
-		if (faceHalService == null) {
-			Log.e(TAG, "Unable to get IFaceHalService.");
-		    return null;
+    public static IBiometricsFace getIBiometricsFace() {
+        IFaceHalService faceHalService =
+                IFaceHalService.Stub.asInterface(ServiceManager.getService(SERVICE_NAME));
+        if (faceHalService == null) {
+            Log.e(TAG, "Unable to get IFaceHalService.");
+            return null;
         }
-		return new FakeBiometricsFace(faceHalService);
-	}
+        return new FakeBiometricsFace(faceHalService);
+    }
 }

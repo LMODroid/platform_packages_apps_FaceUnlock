@@ -21,56 +21,49 @@ import android.os.ServiceManager;
 
 public final class FaceUnlockManager {
 
-	public static final String SERVICE_NAME = "faceunlock";
-	private static final String TAG = "FaceUnlockManager";
+    public static final String SERVICE_NAME = "faceunlock";
+    private static final String TAG = "FaceUnlockManager";
 
-	private static FaceUnlockManager sFaceUnlockManager;
-	private IFaceUnlockManager mFaceUnlockManager;
+    private static FaceUnlockManager sFaceUnlockManager;
+    private IFaceUnlockManager mFaceUnlockManager;
 
-	private FaceUnlockManager() {
-		mFaceUnlockManager = IFaceUnlockManager.Stub.asInterface(
-				ServiceManager.getService(SERVICE_NAME));
-		if (mFaceUnlockManager == null)
-			throw new RuntimeException("Unable to get FaceUnlockService.");
-	}
+    private FaceUnlockManager() {
+        mFaceUnlockManager =
+                IFaceUnlockManager.Stub.asInterface(ServiceManager.getService(SERVICE_NAME));
+        if (mFaceUnlockManager == null)
+            throw new RuntimeException("Unable to get FaceUnlockService.");
+    }
 
-	public static FaceUnlockManager getInstance() {
-		if (sFaceUnlockManager != null)
-			return sFaceUnlockManager;
-		sFaceUnlockManager = new FaceUnlockManager();
-		return sFaceUnlockManager;
-	}
+    public static FaceUnlockManager getInstance() {
+        if (sFaceUnlockManager != null) return sFaceUnlockManager;
+        sFaceUnlockManager = new FaceUnlockManager();
+        return sFaceUnlockManager;
+    }
 
-	/**
-	 * Send enroll result remainings to HAL.
-	 */
-	public void enrollResult(int remaining) {
-		try {
-			mFaceUnlockManager.enrollResult(remaining);
-		} catch (RemoteException e) {
-			throw new RuntimeException("Failed when enrollResult(): " + e);
-		}
-	}
+    /** Send enroll result remainings to HAL. */
+    public void enrollResult(int remaining) {
+        try {
+            mFaceUnlockManager.enrollResult(remaining);
+        } catch (RemoteException e) {
+            throw new RuntimeException("Failed when enrollResult(): " + e);
+        }
+    }
 
-	/**
-	 * Send error code to HAL.
-	 */
-	public void error(int error) {
-		try {
-			mFaceUnlockManager.error(error);
-		} catch (RemoteException e) {
-			throw new RuntimeException("Failed when error(): " + e);
-		}
-	}
+    /** Send error code to HAL. */
+    public void error(int error) {
+        try {
+            mFaceUnlockManager.error(error);
+        } catch (RemoteException e) {
+            throw new RuntimeException("Failed when error(): " + e);
+        }
+    }
 
-	/**
-	 * Save Enrolled face and HAT
-	 */
-	public void finishEnroll(String encodedFaces, byte[] token) {
-		try {
-			mFaceUnlockManager.finishEnroll(encodedFaces, token);
-		} catch (RemoteException e) {
-			throw new RuntimeException("Failed when finishEnroll(): " + e);
-		}
-	}
+    /** Save Enrolled face and HAT */
+    public void finishEnroll(String encodedFaces, byte[] token) {
+        try {
+            mFaceUnlockManager.finishEnroll(encodedFaces, token);
+        } catch (RemoteException e) {
+            throw new RuntimeException("Failed when finishEnroll(): " + e);
+        }
+    }
 }
