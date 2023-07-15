@@ -375,7 +375,7 @@ public class FaceUnlockServer {
     final CameraService.CameraCallback faceCallback =
             new CameraService.CameraCallback() {
                 private FaceRecognizer mFaceRecognizer = null;
-                private FaceStorageBackend lastStorage = null;
+                private String lastStore = null;
                 private Size lastSize = null;
                 private Integer lastRotation = null;
                 private Boolean lastSecure = null;
@@ -388,14 +388,24 @@ public class FaceUnlockServer {
                             && (lastSize == null
                                     || lastRotation == null
                                     || lastSecure == null
-                                    || lastStorage == null
+                                    || lastStore == null
                                     || !lastSize.equals(bitmapSize)
                                     || !lastRotation.equals(rotation)
                                     || !lastSecure.equals(secureMode)
-                                    || lastStorage != faceStorage)) {
+                                    || !lastStore.equals(mStorePath))) {
+                        if (DEBUG) {
+                            Log.d(TAG, "nuked face recognizer: ");
+                            Log.d(TAG, "lastSize == null: " + (lastSize == null));
+                            Log.d(TAG, "lastRotation == null: " + (lastRotation == null));
+                            Log.d(TAG, "lastSecure == null: " + (lastSecure == null));
+                            Log.d(TAG, "lastStore == null: " + (lastStore == null));
+                            Log.d(TAG, "!lastSize.equals(bitmapSize): " + (!lastSize.equals(bitmapSize)));
+                            Log.d(TAG, "!lastRotation.equals(rotation): " + (!lastRotation.equals(rotation)));
+                            Log.d(TAG, "!lastSecure.equals(secureMode): " + (!lastSecure.equals(secureMode)));
+                            Log.d(TAG, "!lastStore.equals(mStorePath): " + (!lastStore.equals(mStorePath)));
+                        }
                         mFaceRecognizer = null;
                     }
-                    lastStorage = faceStorage;
                     if (faceStorage == null) {
                         Log.w(TAG, "tried to unlock with null storage");
                         return;
@@ -432,6 +442,7 @@ public class FaceUnlockServer {
                             lastSize = bitmapSize;
                             lastRotation = rotation;
                             lastSecure = secureMode;
+                            lastStore = mStorePath;
                         }
                     }
                 }
@@ -545,7 +556,7 @@ public class FaceUnlockServer {
                     // Avoid memory leak.
                     if (lowMemoryMode) {
                         mFaceRecognizer = null;
-                        lastStorage = null;
+                        lastStore = null;
                         lastSize = null;
                         lastRotation = null;
                         lastSecure = null;
