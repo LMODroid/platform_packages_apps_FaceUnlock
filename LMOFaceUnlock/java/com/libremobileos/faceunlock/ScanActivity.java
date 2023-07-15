@@ -147,7 +147,7 @@ public class ScanActivity extends CameraActivity {
             };
 
     @Override
-    protected void onStop() {
+    protected void onPause() {
         mBackgroundThread.quitSafely();
         if (faces.size() < 10) {
             try {
@@ -163,7 +163,8 @@ public class ScanActivity extends CameraActivity {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        super.onStop();
+        super.onPause();
+        finish();
     }
 
     @Override
