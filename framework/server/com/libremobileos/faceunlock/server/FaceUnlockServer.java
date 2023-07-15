@@ -430,9 +430,11 @@ public class FaceUnlockServer {
                                                     bitmapSize.getHeight(), /* bitmap height */
                                                     rotation,
                                                     secureMode
-                                                            ? 0.45f
+                                                            ? 0.5f
                                                             : 0.7f, /* maximum distance (to saved face model, not from camera) to track face */
-                                                    1, /* minimum model count to track face */
+                                                    secureMode
+                                                            ? 1 /* in secure mode we are very strict at distance, need to calm down here */
+                                                            : 2, /* minimum model count to track face */
                                                     false,
                                                     false,
                                                     4);
