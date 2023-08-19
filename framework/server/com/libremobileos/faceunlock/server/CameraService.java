@@ -104,13 +104,13 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
                 @Override
                 public void onDisconnected(CameraDevice camera) {
                     if (DEBUG) Log.d(TAG, "onDisconnected");
-                    cameraDevice.close();
+                    stopBackgroundThread();
                 }
 
                 @Override
                 public void onError(CameraDevice camera, int error) {
-                    if (DEBUG) Log.d(TAG, "onError");
-                    closeCamera();
+                    Log.w(TAG, "onError error=" + error);
+                    stopBackgroundThread();
                 }
             };
 
@@ -138,6 +138,12 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
     private void createCameraPreview() {
         if (DEBUG) Log.d(TAG, "createCameraPreview");
         try {
+            if (previewSize == null) {
+                Log.e(TAG, "previewSize == null, should not happen, possibly race condition?");
+                stopBackgroundThread();
+                return;
+            }
+
             previewReader =
                     ImageReader.newInstance(
                             previewSize.getWidth(),
