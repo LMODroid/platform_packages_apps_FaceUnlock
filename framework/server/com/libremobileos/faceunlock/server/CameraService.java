@@ -36,8 +36,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
 import android.view.Display;
-import android.view.Surface;
-import android.view.WindowManager;
+import android.view.OrientationEventListener;
 
 import com.libremobileos.yifan.face.ImageUtils;
 
@@ -77,6 +76,11 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
     protected final Size desiredInputSize = new Size(640, 480);
     // The calculated actual processing width & height
     protected int imageOrientation;
+    private int sensorOrientation = 0;
+
+    private int currentOrientation = 0;
+    private OrientationEventListener orientationListener;
+    private static final int ORIENTATION_HYSTERESIS = 5;
 
     public interface CameraCallback {
         void setupFaceRecognizer(Size bitmapSize, int rotation);
@@ -89,6 +93,51 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
     public CameraService(Context context, CameraCallback callback) {
         mContext = context;
         mCallback = callback;
+        setupOrientationListener();
+    }
+
+    private void setupOrientationListener() {
+        orientationListener = new OrientationEventListener(mContext) {
+
+            @Override
+            public void onOrientationChanged(int orientation) {
+                if (orientation == ORIENTATION_UNKNOWN) return;
+                int distance = Math.abs(orientation - currentOrientation);
+                distance = Math.min(distance, 360 - distance);
+                boolean changed = distance >= 45 + ORIENTATION_HYSTERESIS;
+                if (changed) {
+                    int newOrientation = ((orientation + 45) / 90 * 90 ) % 360;
+                    switch(newOrientation) {
+                        case 0:
+                        case 90:
+                        case 180:
+                        case 270:
+                            currentOrientation = newOrientation;
+                            setupFaceRecognizer();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        };
+    }
+
+    private void setupFaceRecognizer() {
+        if (previewSize == null || mBackgroundHandler == null) return;
+        mBackgroundHandler.post(
+            () -> {
+                imageOrientation = (sensorOrientation - currentOrientation + 360) % 360;
+                if (imageOrientation % 180 != 0) {
+                    rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+                } else {
+                    rotatedSize = new Size(previewSize.getWidth(), previewSize.getHeight());
+                }
+                if (DEBUG) Log.d(TAG, "setting up face recognizer");
+                mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
+                if (DEBUG) Log.d(TAG, "done setting up face recognizer, opening camera");
+            }
+        );
     }
 
     private final CameraDevice.StateCallback stateCallback =
@@ -262,6 +311,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
             Log.e(TAG, "camera already open");
             return;
         }
+        // Enable orientation listener
+        orientationListener.enable();
         mBackgroundHandler.post(
                 () -> {
                     CameraManager manager =
@@ -282,7 +333,7 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
                         StreamConfigurationMap map =
                                 characteristics.get(
                                         CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                        Integer sensorOrientation =
+                        sensorOrientation =
                                 characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
                         assert map != null;
@@ -299,19 +350,13 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
                                         desiredInputSize.getHeight());
                         rotatedSize = previewSize;
 
-                        imageOrientation = sensorOrientation + getScreenOrientation();
                         rgbFrameBitmap =
                                 Bitmap.createBitmap(
                                         previewSize.getWidth(),
                                         previewSize.getHeight(),
                                         Bitmap.Config.ARGB_8888);
 
-                        if (imageOrientation % 180 != 0) {
-                            rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
-                        }
-                        if (DEBUG) Log.d(TAG, "setting up face recognizer");
-                        mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
-                        if (DEBUG) Log.d(TAG, "done setting up face recognizer, opening camera");
+                        setupFaceRecognizer();
                         manager.openCamera(cameraId, stateCallback, mBackgroundHandler);
                     } catch (CameraAccessException | SecurityException e) {
                         e.printStackTrace();
@@ -343,6 +388,8 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
         imageConverter = null;
         rgbBytes = null;
         yuvBytes = null;
+        currentOrientation = 0;
+        orientationListener.disable();
     }
 
     private void fillBytes(final Image.Plane[] planes, final byte[][] yuvBytes) {
@@ -360,22 +407,6 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
     private int[] getRgbBytes() {
         imageConverter.run();
         return rgbBytes;
-    }
-
-    private int getScreenOrientation() {
-        Display display =
-                ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE))
-                        .getDefaultDisplay();
-        switch (display.getRotation()) {
-            case Surface.ROTATION_270:
-                return 270;
-            case Surface.ROTATION_180:
-                return 180;
-            case Surface.ROTATION_90:
-                return 90;
-            default:
-                return 0;
-        }
     }
 
     public void readyForNextImage() {
