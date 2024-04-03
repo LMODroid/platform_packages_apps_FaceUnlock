@@ -124,14 +124,16 @@ public class CameraService implements ImageReader.OnImageAvailableListener {
     }
 
     private void setupFaceRecognizer() {
-        if (previewSize == null || mBackgroundHandler == null) return;
-        mBackgroundHandler.post(
+        Size size = previewSize;
+        Handler handler = mBackgroundHandler;
+        if (size == null || handler == null) return;
+        handler.post(
             () -> {
                 imageOrientation = (sensorOrientation - currentOrientation + 360) % 360;
                 if (imageOrientation % 180 != 0) {
-                    rotatedSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+                    rotatedSize = new Size(size.getHeight(), size.getWidth());
                 } else {
-                    rotatedSize = new Size(previewSize.getWidth(), previewSize.getHeight());
+                    rotatedSize = new Size(size.getWidth(), size.getHeight());
                 }
                 if (DEBUG) Log.d(TAG, "setting up face recognizer");
                 mCallback.setupFaceRecognizer(rotatedSize, imageOrientation);
