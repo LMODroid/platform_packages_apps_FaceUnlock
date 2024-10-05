@@ -107,10 +107,10 @@ public class ScanActivity extends CameraActivity {
         if (mToken != null) {
             ArrayList<Integer> disabledFeatures = new ArrayList<>();
             if (!getIntent().getBooleanExtra(EXTRA_KEY_REQUIRE_DIVERSITY, true)) {
-                disabledFeatures.add(FaceManager.FEATURE_REQUIRE_REQUIRE_DIVERSITY);
+                disabledFeatures.add(BiometricFaceConstants.FEATURE_REQUIRE_REQUIRE_DIVERSITY);
             }
             if (!getIntent().getBooleanExtra(EXTRA_KEY_REQUIRE_VISION, true)) {
-                disabledFeatures.add(FaceManager.FEATURE_REQUIRE_ATTENTION);
+                disabledFeatures.add(BiometricFaceConstants.FEATURE_REQUIRE_ATTENTION);
             }
             final int[] disabledFeaturesArr = new int[disabledFeatures.size()];
             for (int i = 0; i < disabledFeatures.size(); i++) {
